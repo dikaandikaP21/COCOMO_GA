@@ -55,20 +55,22 @@ class CocomoNasa93Processor
         );
     }
 
-    function datacocomo()
+    function hiddbyproject()
     {
-        foreach ($this->processingData() as $keydata => $val) {
-            print_r($val);
-            echo "<br>";
-            foreach ($this->getScales() as $keyscales => $valscales) {
-                print_r($val);
-                echo "<br>";
-                //foreach (array_keys($val) as $subkey) {
 
-                //     if ($subkey == array_keys($this->getScales())) {
-                //         $data[] = '';
-                //     }
-            }
+        $project = $this->processingData();
+
+        for ($i = 0; $i < $this->processingData(); $i++) {
+            $val = $project[$i];
+            //print_r($val);
+            unset($project[$i]);
+            // $project =  array_shift($project[$i]);
+            // $hidd[$i] = $project;
+            echo ("Iterasi ke- " . $i);
+            print_r($project);
+            echo "<p>";
+            array_splice($project, $i, 0, $val);
+            // array_push($project, $val);
         }
     }
 }
@@ -76,4 +78,4 @@ class CocomoNasa93Processor
 
 
 $cocomo = new CocomoNasa93Processor;
-print_r($cocomo->datacocomo());
+print_r($cocomo->hiddbyproject());
