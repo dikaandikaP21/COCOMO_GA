@@ -13,7 +13,7 @@ class CocomoNasa93Processor
         foreach ($raw_dataset as $val) {
             $data[] = explode(",", $val);
         }
-
+        //  print_r($data);
         $columnIndexes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25];
         $columns = ['prec', 'flex', 'resl', 'team', 'pmat', 'rely', 'data', 'cplx', 'ruse', 'docu', 'time', 'stor', 'pvol', 'acap', 'pcap', 'pcon', 'apex', 'plex', 'ltex', 'tool', 'site', 'sced', 'kloc', 'actualEffort', 'defects', 'months'];
         foreach ($data as $key => $val) {
@@ -55,22 +55,20 @@ class CocomoNasa93Processor
         );
     }
 
-    function hiddbyproject()
+    function hidproject()
     {
 
         $project = $this->processingData();
 
-        for ($i = 0; $i < $this->processingData(); $i++) {
-            $val = $project[$i];
-            //print_r($val);
+        for ($i = 0; $i < sizeof($this->processingData()); $i++) {
+            $val[] = $project[$i];
+
             unset($project[$i]);
-            // $project =  array_shift($project[$i]);
-            // $hidd[$i] = $project;
+            //  $project =  array_shift($project[$i]);
             echo ("Iterasi ke- " . $i);
             print_r($project);
             echo "<p>";
-            array_splice($project, $i, 0, $val);
-            // array_push($project, $val);
+            array_splice($project, $i, 0, array($val[$i]));
         }
     }
 }
@@ -78,4 +76,4 @@ class CocomoNasa93Processor
 
 
 $cocomo = new CocomoNasa93Processor;
-print_r($cocomo->hiddbyproject());
+print_r($cocomo->processingData());
