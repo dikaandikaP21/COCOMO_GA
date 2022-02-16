@@ -3,6 +3,9 @@
 class Parameter
 {
     const file_name = 'cocomo_nasa93.txt';
+    const mr = 0.01;
+    const populationSize = 30;
+    const cr = 0.9;
 }
 
 class CocomoNasa93Processor
@@ -55,25 +58,93 @@ class CocomoNasa93Processor
         );
     }
 
+
+    function putScales()
+    {
+        $project = $this->processingData();
+        $scales = $this->getScales();
+        $i = 0;
+        foreach ($project as $key => $val) {
+            foreach (array_keys($val) as $subkey => $subval) {
+
+                if ($subkey < sizeof($scales)) {
+                    $key_subproject = array_keys($val);
+                    $key_scales = array_keys($scales);
+
+                    if ($key_subproject[$subkey] == $key_scales[$subkey]) {
+                        //print_r($key_subproject[$subkey]);          //komponen-komponen dari setiap projek
+                        // echo " -> ";
+                        // print_r($val[$key_subproject[$subkey]]);  //value dari komponen setiap project
+                        // echo " -> ";
+                        // print_r($scales[$key_scales[$subkey]]);    //value dari scales
+
+                        $cari = $val[$key_subproject[$subkey]];
+
+                        if (key_exists($cari, $scales[$key_scales[$subkey]])) {
+
+                            $subkey_scales = $scales[$key_scales[$subkey]];
+                            // print_r($project[$key][$key_subproject[$subkey]] . ' -> ' . $subkey_scales[$cari]);
+                            $project[$key][$key_subproject[$subkey]] =  $subkey_scales[$cari];
+                            // unset($subkey_scales[$cari]);
+                        }
+
+                        // echo "<p>";
+                    }
+                }
+            }
+        }
+
+
+        return $project;
+    }
+}
+
+class Hitung
+{
+
     function hidproject()
     {
+        $CocomoNasa93Processor = new CocomoNasa93Processor;
+        $project = $CocomoNasa93Processor->putScales();
 
-        $project = $this->processingData();
-
-        for ($i = 0; $i < sizeof($this->processingData()); $i++) {
+        $genetik = new Genetic;
+        $individu = $genetik->population();
+        // print_r($individu);
+        // echo '<p>';
+        for ($i = 0; $i < sizeof($CocomoNasa93Processor->processingData()); $i++) {
             $val[] = $project[$i];
 
-            unset($project[$i]);
-            //  $project =  array_shift($project[$i]);
             echo ("Iterasi ke- " . $i);
-            print_r($project);
+            print_r($project[$i]);
+            unset($project[$i]);
+            echo "<br>";
+
             echo "<p>";
             array_splice($project, $i, 0, array($val[$i]));
         }
     }
 }
 
+class Genetic
+{
+
+    function population()
+    {
+        for ($i = 0; $i < Parameter::populationSize; $i++) {
+            $individu[] = [
+                mt_rand(0 * 100, 10 * 100) / 100,
+                mt_rand(0.3 * 100, 2 * 100) / 100,
+            ];
+        }
+        return $individu;
+    }
+}
 
 
-$cocomo = new CocomoNasa93Processor;
-print_r($cocomo->processingData());
+// $CocomoNasa93Processor = new CocomoNasa93Processor;
+
+$hitung = new Hitung;
+print_r($hitung->hidproject());
+
+// $genetik = new Genetic;
+// print_r($genetik->population());
