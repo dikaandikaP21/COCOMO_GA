@@ -99,7 +99,7 @@ class CocomoNasa93Processor
     }
 }
 
-class Hitung
+class COCOMO93
 {
 
     function __construct($project, $individu)
@@ -152,58 +152,70 @@ class Hitung
 
             // echo "<br>";
             // print_r($sf);
-            $SFproject[] = $sf;
+            $ScaleFactor[] = $sf;
             // echo "<p>";
         }
-        return $SFproject;
+        return $ScaleFactor;
     }
 
     function EffortMultipyer()
     {
         // Hitung EffortMultipyer setiap project
         $project = $this->project;
-
         $columEM = ["rely", "data", "cplx", "ruse", "docu", "time", "stor", "pvol", "acap", "pcap", "pcon", "apex", "plex", "ltex", "tool", "site", "sced"];
-        $em = 0;
 
         foreach ($project as $key => $val) {
-            echo ('Project-> ' . $key . '');
+            // echo ('Project ' . $key . '');
+            $em = 0;
             foreach (array_keys($val) as $subkey => $val_subkey) {
-                echo '<br>';
-
+                // echo '<br>';
                 // print_r($columEM[$subkey]);
-
-
-                if ($val_subkey  = $columEM[$subkey]) {
-                    print_r($val[$val_subkey]);
+                if ($subkey < 17) {
+                    if ($val_subkey  = $columEM[$subkey]) {
+                        // print_r($val_subkey . ' -> ');
+                        // print_r($val[$val_subkey]);
+                        $em += $val[$val_subkey] / 17;
+                    }
                 }
             }
-            echo '<p>';
+            // echo 'Nilai EM = ';
+            // print_r($em);
+            // echo '<p>';
+            $array_EM[] = $em;
+            // print_r($array_EM);
         }
+        return $array_EM;
     }
 
     function Effort()
     {
         //Hitung Effort setiap project
-        $valueSF_Project = $this->ScaleFactor();
+        $ScaleFactor = $this->ScaleFactor();
+        $EffortMultiplyer = $this->EffortMultipyer();
         $individu = $this->individu;
         $project = $this->project;
 
         foreach ($individu as $key => $val) {
-            echo (' Variabel B-> ' . $key);
+            // echo (' Individu -> ' . $key);
             // print_r($val[1]);
-
+            $PM = 0;
             foreach ($project as $key_project => $val_project) {
-
-                echo '<br>';
-                echo ('Project' . $key_project . ' -> ');
-                $effort = $val[1] * 0.01 * $valueSF_Project[$key_project];
+                //  echo '<br>';
+                // print_r($val_project['kloc']);
+                //  echo ('Project' . $key_project . ' -> ');
+                $effort = $val[1] * 0.01 * $ScaleFactor[$key_project];
                 // print_r($effort);
-
-
+                $PM += $val[0] * pow($val_project['kloc'], $effort)   * $EffortMultiplyer[$key_project];
+                //  print_r($PM);
+                // $array_PM[] = $PM;
+                $array_PM[$key_project] = $PM;
             }
-            echo '<p>';
+            $array_individu[] = $array_PM;
+            // print_r($array_individu);
+            // echo '<p>';
         }
+
+        return $array_individu;
     }
 }
 
@@ -226,7 +238,7 @@ class Genetic
 $CocomoNasa93Processor = new CocomoNasa93Processor;
 $genetik = new Genetic;
 
-$hitung = new Hitung($CocomoNasa93Processor->putScales(), $genetik->population());
-print_r($hitung->EffortMultipyer());
+$hitung = new COCOMO93($CocomoNasa93Processor->putScales(), $genetik->population());
+print_r($hitung->Effort());
 
 // print_r($genetik->population());
