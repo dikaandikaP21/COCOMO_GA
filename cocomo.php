@@ -63,10 +63,9 @@ class CocomoNasa93Processor
     {
         $project = $this->processingData();
         $scales = $this->getScales();
-        $i = 0;
+
         foreach ($project as $key => $val) {
             foreach (array_keys($val) as $subkey => $subval) {
-
                 if ($subkey < sizeof($scales)) {
                     $key_subproject = array_keys($val);
                     $key_scales = array_keys($scales);
@@ -78,13 +77,13 @@ class CocomoNasa93Processor
                         // echo " -> ";
                         // print_r($scales[$key_scales[$subkey]]);    //value dari scales
 
-                        $cari = $val[$key_subproject[$subkey]];
+                        $search = $val[$key_subproject[$subkey]];
 
-                        if (key_exists($cari, $scales[$key_scales[$subkey]])) {
+                        if (key_exists($search, $scales[$key_scales[$subkey]])) {
 
                             $subkey_scales = $scales[$key_scales[$subkey]];
                             // print_r($project[$key][$key_subproject[$subkey]] . ' -> ' . $subkey_scales[$cari]);
-                            $project[$key][$key_subproject[$subkey]] =  $subkey_scales[$cari];
+                            $project[$key][$key_subproject[$subkey]] =  $subkey_scales[$search];
                             // unset($subkey_scales[$cari]);
                         }
 
@@ -92,6 +91,7 @@ class CocomoNasa93Processor
                     }
                 }
             }
+            // echo '<br>';
         }
 
 
@@ -102,25 +102,107 @@ class CocomoNasa93Processor
 class Hitung
 {
 
+    function __construct($project, $individu)
+    {
+        $this->project = $project;
+        $this->individu = $individu;
+    }
+
+
     function hidproject()
     {
-        $CocomoNasa93Processor = new CocomoNasa93Processor;
-        $project = $CocomoNasa93Processor->putScales();
 
-        $genetik = new Genetic;
-        $individu = $genetik->population();
-        // print_r($individu);
-        // echo '<p>';
-        for ($i = 0; $i < sizeof($CocomoNasa93Processor->processingData()); $i++) {
-            $val[] = $project[$i];
+        for ($i = 0; $i < sizeof($this->project); $i++) {
+            //cari perproject
+            $val[] = $this->project[$i];
 
-            echo ("Iterasi ke- " . $i);
-            print_r($project[$i]);
-            unset($project[$i]);
-            echo "<br>";
+            echo ("Project ke- " . $i . ' ');
+            print_r($this->project[$i]);
+            unset($this->project[$i]);
 
             echo "<p>";
-            array_splice($project, $i, 0, array($val[$i]));
+            array_splice($this->project, $i, 0, array($val[$i]));
+        }
+    }
+
+    function ScaleFactor()
+    {
+        //hitung nilai SF setiap project
+        $columSF = [
+            "prec",
+            "flex",
+            "resl",
+            "team",
+            "pmat"
+        ];
+        foreach ($this->project as $key => $val) {
+            //echo ("E Project ke- " . $key . ' ');
+            $sf = 0;
+            //hitunf SF
+            foreach (array_keys($val) as $subkey => $val_subkey) {
+
+                if ($subkey < sizeof($columSF)) {
+                    // echo '<br>';
+                    // print_r($val_subkey . '->');
+                    // print_r($val[$val_subkey]);
+
+                    $sf +=  $val[$val_subkey];
+                }
+            }
+
+            // echo "<br>";
+            // print_r($sf);
+            $SFproject[] = $sf;
+            // echo "<p>";
+        }
+        return $SFproject;
+    }
+
+    function EffortMultipyer()
+    {
+        // Hitung EffortMultipyer setiap project
+        $project = $this->project;
+
+        $columEM = ["rely", "data", "cplx", "ruse", "docu", "time", "stor", "pvol", "acap", "pcap", "pcon", "apex", "plex", "ltex", "tool", "site", "sced"];
+        $em = 0;
+
+        foreach ($project as $key => $val) {
+            echo ('Project-> ' . $key . '');
+            foreach (array_keys($val) as $subkey => $val_subkey) {
+                echo '<br>';
+
+                // print_r($columEM[$subkey]);
+
+
+                if ($val_subkey  = $columEM[$subkey]) {
+                    print_r($val[$val_subkey]);
+                }
+            }
+            echo '<p>';
+        }
+    }
+
+    function Effort()
+    {
+        //Hitung Effort setiap project
+        $valueSF_Project = $this->ScaleFactor();
+        $individu = $this->individu;
+        $project = $this->project;
+
+        foreach ($individu as $key => $val) {
+            echo (' Variabel B-> ' . $key);
+            // print_r($val[1]);
+
+            foreach ($project as $key_project => $val_project) {
+
+                echo '<br>';
+                echo ('Project' . $key_project . ' -> ');
+                $effort = $val[1] * 0.01 * $valueSF_Project[$key_project];
+                // print_r($effort);
+
+
+            }
+            echo '<p>';
         }
     }
 }
@@ -141,10 +223,10 @@ class Genetic
 }
 
 
-// $CocomoNasa93Processor = new CocomoNasa93Processor;
+$CocomoNasa93Processor = new CocomoNasa93Processor;
+$genetik = new Genetic;
 
-$hitung = new Hitung;
-print_r($hitung->hidproject());
+$hitung = new Hitung($CocomoNasa93Processor->putScales(), $genetik->population());
+print_r($hitung->EffortMultipyer());
 
-// $genetik = new Genetic;
 // print_r($genetik->population());
