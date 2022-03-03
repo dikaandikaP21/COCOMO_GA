@@ -1,5 +1,8 @@
 <?php
 
+use Fitness as GlobalFitness;
+use Population as GlobalPopulation;
+
 class Parameter
 {
     const file_name = 'cocomo_nasa93.txt';
@@ -69,176 +72,215 @@ class CocomoNasa93Processor
                 if ($subkey < sizeof($scales)) {
                     $key_subproject = array_keys($val);
                     $key_scales = array_keys($scales);
-
                     if ($key_subproject[$subkey] == $key_scales[$subkey]) {
-                        //print_r($key_subproject[$subkey]);          //komponen-komponen dari setiap projek
-                        // echo " -> ";
-                        // print_r($val[$key_subproject[$subkey]]);  //value dari komponen setiap project
-                        // echo " -> ";
-                        // print_r($scales[$key_scales[$subkey]]);    //value dari scales
-
                         $search = $val[$key_subproject[$subkey]];
-
                         if (key_exists($search, $scales[$key_scales[$subkey]])) {
-
                             $subkey_scales = $scales[$key_scales[$subkey]];
-                            // print_r($project[$key][$key_subproject[$subkey]] . ' -> ' . $subkey_scales[$cari]);
                             $project[$key][$key_subproject[$subkey]] =  $subkey_scales[$search];
-                            // unset($subkey_scales[$cari]);
                         }
-
-                        // echo "<p>";
                     }
                 }
             }
-            // echo '<br>';
+        }
+        return $project;
+    }
+}
+
+
+class Individu
+{
+    function createIndividu()
+    {
+        return [
+            'A' => mt_rand(0 * 100, 10 * 100) / 100,
+            'B' => mt_rand(0.3 * 100, 2 * 100) / 100
+        ];
+    }
+
+    function countNumberOfGen()
+    {
+        return count($this->createIndividu());
+    }
+}
+
+class Population
+{
+    function createPopulation()
+    {
+        $individu = new Individu;
+        for ($i = 0; $i < Parameter::populationSize; $i++) {
+            $population[$i] = $individu->createIndividu();
         }
 
-
-        return $project;
+        return $population;
     }
 }
 
 class COCOMO93
 {
 
-    function __construct($project, $individu)
+    function __construct($project, $population)
     {
         $this->project = $project;
-        $this->individu = $individu;
+        $this->population = $population;
     }
 
 
-    function hidproject()
-    {
+    // function hidproject()
+    // {
+    //     for ($i = 0; $i < sizeof($this->project); $i++) {
+    //         $val[] = $this->project[$i];
 
-        for ($i = 0; $i < sizeof($this->project); $i++) {
-            //cari perproject
-            $val[] = $this->project[$i];
-
-            echo ("Project ke- " . $i . ' ');
-            print_r($this->project[$i]);
-            unset($this->project[$i]);
-
-            echo "<p>";
-            array_splice($this->project, $i, 0, array($val[$i]));
-        }
-    }
+    //         echo ("Project ke- " . $i . ' ');
+    //         print_r($this->project[$i]);
+    //         unset($this->project[$i]);
+    //         echo "<p>";
+    //         array_splice($this->project, $i, 0, array($val[$i]));
+    //     }
+    // }
 
     function ScaleFactor()
     {
-        //hitung nilai SF setiap project
-        $columSF = [
-            "prec",
-            "flex",
-            "resl",
-            "team",
-            "pmat"
-        ];
+        $columSF = ["prec", "flex", "resl", "team", "pmat"];
+
         foreach ($this->project as $key => $val) {
-            //echo ("E Project ke- " . $key . ' ');
-            $sf = 0;
-            //hitunf SF
             foreach (array_keys($val) as $subkey => $val_subkey) {
-
                 if ($subkey < sizeof($columSF)) {
-                    // echo '<br>';
-                    // print_r($val_subkey . '->');
-                    // print_r($val[$val_subkey]);
-
-                    $sf +=  $val[$val_subkey];
+                    $sf[$subkey] =  $val[$val_subkey];
                 }
             }
-
-            // echo "<br>";
-            // print_r($sf);
-            $ScaleFactor[] = $sf;
-            // echo "<p>";
+            $ScaleFactor[$key] = $sf;
         }
         return $ScaleFactor;
     }
 
     function EffortMultipyer()
     {
-        // Hitung EffortMultipyer setiap project
         $project = $this->project;
         $columEM = ["rely", "data", "cplx", "ruse", "docu", "time", "stor", "pvol", "acap", "pcap", "pcon", "apex", "plex", "ltex", "tool", "site", "sced"];
 
         foreach ($project as $key => $val) {
-            // echo ('Project ' . $key . '');
-            $em = 0;
             foreach (array_keys($val) as $subkey => $val_subkey) {
-                // echo '<br>';
-                // print_r($columEM[$subkey]);
                 if ($subkey < 17) {
                     if ($val_subkey  = $columEM[$subkey]) {
-                        // print_r($val_subkey . ' -> ');
-                        // print_r($val[$val_subkey]);
-                        $em += $val[$val_subkey] / 17;
+                        $em[$subkey] = $val[$val_subkey];
                     }
                 }
             }
-            // echo 'Nilai EM = ';
-            // print_r($em);
-            // echo '<p>';
-            $array_EM[] = $em;
-            // print_r($array_EM);
+            $array_EM[$key] = $em;
         }
         return $array_EM;
     }
 
-    function Effort()
+    function scaleEffortExponent($B, $scale_factors)
     {
-        //Hitung Effort setiap project
+        return floatval($B)  + 0.01 * array_sum($scale_factors);
+    }
+
+    function estimating($A, $size, $E, $effort_multipliers)
+    {
+        return floatval($A)  * pow($size, $E) * array_product($effort_multipliers);
+    }
+    function PersonMounth()
+    {
         $ScaleFactor = $this->ScaleFactor();
         $EffortMultiplyer = $this->EffortMultipyer();
-        $individu = $this->individu;
+        $population = $this->population;
         $project = $this->project;
 
-        foreach ($individu as $key => $val) {
-            // echo (' Individu -> ' . $key);
-            // print_r($val[1]);
-            $PM = 0;
-            foreach ($project as $key_project => $val_project) {
-                //  echo '<br>';
-                // print_r($val_project['kloc']);
-                //  echo ('Project' . $key_project . ' -> ');
-                $effort = $val[1] * 0.01 * $ScaleFactor[$key_project];
-                // print_r($effort);
-                $PM += $val[0] * pow($val_project['kloc'], $effort)   * $EffortMultiplyer[$key_project];
-                //  print_r($PM);
-                // $array_PM[] = $PM;
-                $array_PM[$key_project] = $PM;
+        foreach ($project as $key => $val) {
+
+            //  for ($i = 0; $i <= 10; $i++) {
+
+            foreach ($population as $key_population => $val_population) {
+                $E = $this->scaleEffortExponent($val_population['B'], $ScaleFactor[$key]);
+                $PM = $this->estimating($val_population['A'], $val['kloc'], $E, $EffortMultiplyer[$key]);
+                $individu[$key_population] = [
+                    'A' => $val_population['A'],
+                    'B' => $val_population['B'],
+                    'PM' => $PM,
+                    'months' => $val['months'],
+                    //'estimated' => abs($PM - floatval($val['months']))
+                ];
             }
-            $array_individu[] = $array_PM;
-            // print_r($array_individu);
-            // echo '<p>';
-        }
+            $POP[$key] = $individu;
+            // }
 
-        return $array_individu;
+        }
+        return  $POP;
     }
 }
 
-class Genetic
+class Fitness
 {
-
-    function population()
+    function __construct($population)
     {
-        for ($i = 0; $i < Parameter::populationSize; $i++) {
-            $individu[] = [
-                mt_rand(0 * 100, 10 * 100) / 100,
-                mt_rand(0.3 * 100, 2 * 100) / 100,
-            ];
+        $this->population = $population;
+    }
+    function RelativeError($estimasiPM, $actualPM)
+    {
+        return abs($estimasiPM - $actualPM);
+    }
+
+    function sumFitnessvalue($fitnessValue)
+    {
+        return array_sum($fitnessValue);
+    }
+
+    // function sumfitness($fitness)
+    // {
+
+    //     return array_sum($fitness);
+    // }
+
+    function fitnessEvaluation()
+    {
+
+        foreach ($this->population as $key => $val) {
+            print_r('project' . $key . '<br>');
+            //print_r($this->population[$key]);
+            foreach ($val as $key_individu => $val_individu) {
+                echo '<br>';
+
+                $fitnessIndividu[$key_individu] = [
+                    'A' => $val_individu['A'],
+                    'B' => $val_individu['B'],
+                    'PM' => $val_individu['PM'],
+                    'months' => $val_individu['months'],
+                    'fitnessValue' => $this->RelativeError($val_individu['PM'], floatval($val_individu['months'])),
+                ];
+                print_r($fitnessIndividu);
+                print_r('Total : ' . $this->sumFitnessvalue($fitnessIndividu['fitnessValue']));
+            }
+            echo '<p>';
         }
-        return $individu;
+
+        // foreach ($this->individu as $key_individu => $val_individu) {
+        //     foreach ($val_individu as $subkey => $val_sub) {
+        //         $fitness[$subkey] = $this->RelativeError($val_sub['PM'], settype($val_sub['months'],  'float'));
+        //         $actualPM[$subkey] = $val_sub['months'];
+        //     }
+        //     $fitnessIndividu[$key_individu] = [
+        //         'A' => $val_sub['A'],
+        //         'B' => $val_sub['B'],
+        //         'fitnessValue' =>   $this->sumfitness($fitness),
+        //         //'months' => $this->sumActualPM($actualPM)
+        //     ];
+        //     print_r($fitnessIndividu[$key_individu]);
+        //     echo '<br>';
+        // }
+        // return $fitnessIndividu;
     }
 }
+
 
 
 $CocomoNasa93Processor = new CocomoNasa93Processor;
-$genetik = new Genetic;
 
-$hitung = new COCOMO93($CocomoNasa93Processor->putScales(), $genetik->population());
-print_r($hitung->Effort());
+$population = (new Population())->createPopulation();
 
-// print_r($genetik->population());
+$cocomo = (new COCOMO93($CocomoNasa93Processor->putScales(), $population))->PersonMounth();
+// print_r($cocomo->PersonMounth());
+
+$fitness = new Fitness($cocomo);
+print_r($fitness->fitnessEvaluation());
