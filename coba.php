@@ -17,7 +17,7 @@ class CocomoNasa93Processor
         foreach ($raw_dataset as $val) {
             $data[] = explode(",", $val);
         }
-        //  print_r($data);
+
         $columnIndexes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25];
         $columns = ['prec', 'flex', 'resl', 'team', 'pmat', 'rely', 'data', 'cplx', 'ruse', 'docu', 'time', 'stor', 'pvol', 'acap', 'pcap', 'pcon', 'apex', 'plex', 'ltex', 'tool', 'site', 'sced', 'kloc', 'actualEffort', 'defects', 'months'];
         foreach ($data as $key => $val) {
@@ -124,19 +124,6 @@ class COCOMO93
     }
 
 
-    // function hidproject()
-    // {
-    //     for ($i = 0; $i < sizeof($this->project); $i++) {
-    //         $val[] = $this->project[$i];
-
-    //         echo ("Project ke- " . $i . ' ');
-    //         print_r($this->project[$i]);
-    //         unset($this->project[$i]);
-    //         echo "<p>";
-    //         array_splice($this->project, $i, 0, array($val[$i]));
-    //     }
-    // }
-
     function ScaleFactor()
     {
         $columSF = ["prec", "flex", "resl", "team", "pmat"];
@@ -183,80 +170,168 @@ class COCOMO93
 
     function PersonMounth()
     {
-        //Hitung PM setiap project
         $ScaleFactor = $this->ScaleFactor();
         $EffortMultiplyer = $this->EffortMultipyer();
         $population = $this->population;
         $project = $this->project;
 
-        foreach ($population as $key => $val) {
-            echo (' individu -> ' . $key . ' ');
-            print_r('A [' . $val['A'] . '] ' . 'B [' . $val['B'] . ']');
-            echo "<br>";
+        foreach ($project as $key => $val) {
 
-            foreach ($project as $key_project => $val_project) {
+            //  for ($i = 0; $i <= 10; $i++) {
 
-                echo ('Project' . $key_project . ' ');
-                $E = $this->scaleEffortExponent($val['B'], $ScaleFactor[$key_project]);
-                $PM = $this->estimating($val['A'], $val_project['kloc'], $E, $EffortMultiplyer[$key_project]);
-
-                $population[$key_project] = [
-                    'A' => $val['A'],
-                    'B' => $val['B'],
+            foreach ($population as $key_population => $val_population) {
+                $E = $this->scaleEffortExponent($val_population['B'], $ScaleFactor[$key]);
+                $PM = $this->estimating($val_population['A'], $val['kloc'], $E, $EffortMultiplyer[$key]);
+                $individu[$key_population] = [
+                    'A' => $val_population['A'],
+                    'B' => $val_population['B'],
                     'PM' => $PM,
-                    'months' => $val_project['months']
+                    'months' => $val['months'],
                 ];
-                print_r($population[$key_project]);
-                echo '<br>';
             }
-            $array_population[$key] = $population;
-            // print_r($array_population[$key]);
-            //  echo '<p>';
-        }
+            $POP[$key] = $individu;
+            // }
 
-        // return $array_population;
+        }
+        return  $POP;
     }
 }
 
 class Fitness
 {
-    function __construct($individu)
+    function __construct($population)
     {
-        // $this->individu = $individu;
+        $this->population = $population;
     }
     function RelativeError($estimasiPM, $actualPM)
     {
-        // return abs($estimasiPM - $actualPM);
+        return floatval($estimasiPM - $actualPM);
     }
 
-    function sumActualPM($actualPM)
+    function sumFitnessvalue($fitnessValue)
     {
-        // return array_sum($actualPM);
-    }
-
-    function sumfitness($fitness)
-    {
-        // return array_sum($fitness);
+        return floatval(array_sum($fitnessValue));
     }
 
     function fitnessEvaluation()
     {
-        foreach ($this->individu as $key_individu => $val_individu) {
-            foreach ($val_individu as $subkey => $val_sub) {
-                $fitness[$subkey] = $this->RelativeError($val_sub['PM'], settype($val_sub['months'],  'float'));
-                $actualPM[$subkey] = $val_sub['months'];
+        foreach ($this->population as $key => $val) {
+            //  print_r('Projek ' . $key . ' ');
+            foreach ($val as $key_individu => $val_individu) {
+                //    echo '<br>';
+
+                $fitnessIndividu[$key_individu] = [
+                    'A' => $val_individu['A'],
+                    'B' => $val_individu['B'],
+                    'PM' => $val_individu['PM'],
+                    'months' => $val_individu['months'],
+                    'fitness' => $this->RelativeError(floatval($val_individu['PM']), floatval($val_individu['months']))
+                ];
+
+                $fitnessValue[$key_individu] = $fitnessIndividu[$key_individu]['fitness'];
+                // print_r($fitnessIndividu[$key_individu]);
             }
-            $fitnessIndividu[$key_individu] = [
-                'A' => $val_sub['A'],
-                'B' => $val_sub['B'],
-                'fitnessValue' =>   $this->sumfitness($fitness),
-                //'months' => $this->sumActualPM($actualPM)
-            ];
-            // print_r($fitnessIndividu[$key_individu]);
+            $fitness_project[$key] = $fitnessValue;
             // echo '<br>';
+            // echo 'total Fitness ';
+            $fitnessTotal[$key] = $this->sumFitnessvalue($fitness_project[$key]);
+            //  print_r($fitnessTotal[$key]);
+
+            $fitnessEvaluation[$key] = [
+                'populasi' =>  $fitnessIndividu,
+                'totalFitness' => $fitnessTotal
+            ];
+
+            //echo '<p>';
         }
-        return $fitnessIndividu;
+        return $fitnessEvaluation;
     }
+
+    function countProbability($fitness, $total)
+    {
+        return floatval($fitness / $total);
+    }
+
+    function probability()
+    {
+        foreach ($this->fitnessEvaluation() as $key => $val) {
+            // print_r('Project ' . $key . '');
+            foreach ($val['populasi'] as  $key_individu => $val_individu) {
+                // echo '<br>';
+                // print_r($key_individu . '- ');
+                $probabilityIndividu[$key_individu] = [
+                    'probability' => $this->countProbability(floatval($val_individu['fitness']), floatval($val['totalFitness'][$key])),
+                    'A' => $val_individu['A'],
+                    'B' => $val_individu['B'],
+                    'PM' => $val_individu['PM'],
+                    'months' => $val_individu['months'],
+                    'fitness' => $val_individu['fitness'],
+                    'totalFitess' => $val['totalFitness'][$key]
+                ];
+            }
+            // echo '<br>';
+            // echo 'Total Fitness';
+            // print_r($val['totalFitness'][$key]);
+            $populasi[$key] = $probabilityIndividu;
+            // asort($probabilityIndividu);
+            // echo '<p>';
+        }
+        return $populasi;
+    }
+
+    function comulativeProbability()
+    {
+        foreach ($this->probability() as $key => $val) {
+            print_r('Project ' . $key . '');
+            $temp = 0;
+            foreach ($val as $key_individu => $val_individu) {
+                echo '<br>';
+                if ($key_individu == 0) {
+                    $temp = abs($val_individu['probability'] + 0);
+                    $probabilityKomulatif[$key_individu] = [
+                        'komulatif' =>   $temp,
+                        'probability' => $val_individu['probability'],
+                        'A' => $val_individu['A'],
+                        'B' => $val_individu['B'],
+                        'PM' => $val_individu['PM'],
+                        'months' => $val_individu['months'],
+                        'fitness' => $val_individu['fitness'],
+                        'totalFitess' => $val_individu['totalFitess'],
+                    ];
+                } else {
+                    $temp += abs($val_individu['probability']);
+                    $probabilityKomulatif[$key_individu] = [
+                        'komulatif' => $temp,
+                        'probability' => $val_individu['probability'],
+                        'A' => $val_individu['A'],
+                        'B' => $val_individu['B'],
+                        'PM' => $val_individu['PM'],
+                        'months' => $val_individu['months'],
+                        'fitness' => $val_individu['fitness'],
+                        'totalFitess' => $val_individu['totalFitess'],
+                    ];
+                }
+                print_r($probabilityKomulatif[$key_individu]);
+            }
+            asort($probabilityKomulatif);
+            //  $populasi[$key] = $probabilityKomulatif;
+
+            echo '<p>';
+        }
+        //  return $populasi;
+    }
+
+    // function cek()
+    // {
+    //     foreach ($this->comulativeProbability() as $key => $val) {
+    //         print_r('Project ' . $key);
+    //         foreach ($val as $key_individu => $val_individu) {
+    //             echo '<br>';
+    //             print_r($val_individu);
+    //         }
+    //         echo '<p>';
+    //     }
+    // }
 }
 
 
@@ -414,15 +489,15 @@ class Fitness
 
 
 
-// $CocomoNasa93Processor = (new CocomoNasa93Processor)->putScales();
+$CocomoNasa93Processor = (new CocomoNasa93Processor);
 
-// $population = (new Population())->createPopulation();
+$population = (new Population())->createPopulation();
 
-// $Cocomo = new COCOMO93($CocomoNasa93Processor, $population);
-// print_r($Cocomo->PersonMounth());
+$Cocomo = (new COCOMO93($CocomoNasa93Processor->putScales(), $population))->PersonMounth();
+//print_r($Cocomo->PersonMounth());
 
-// $fitness = new Fitness($Cocomo->PersonMounth());
-// print_r($fitness->fitnessEvaluation());
+$fitness = new Fitness($Cocomo);
+print_r($fitness->comulativeProbability());
 
 // $crossover = new Crossover($population, Parameter::crossoverRate);
 // print_r($crossover->crossover());
