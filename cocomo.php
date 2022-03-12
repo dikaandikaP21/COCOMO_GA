@@ -236,7 +236,7 @@ class Fitness
             foreach ($val as $key_individu => $val_individu) {
 
                 $fitnessIndividu[$key_individu] = [
-                    'fitnessValue' => $this->RelativeError($val_individu['PM'], floatval($val_individu['months'])),
+                    'fitness' => $this->RelativeError(floatval($val_individu['PM']), floatval($val_individu['months'])),
                     'A' => $val_individu['A'],
                     'B' => $val_individu['B'],
                     'PM' => $val_individu['PM'],
@@ -244,11 +244,11 @@ class Fitness
                 ];
 
 
-                $fit[$key_individu] = $fitnessIndividu[$key_individu]['fitnessValue'];
+                $fitnessValue[$key_individu] = $fitnessIndividu[$key_individu]['fitness'];
             }
-            // asort($fitnessIndividu);
-            $project_fit[$key] = $fit;
-            $fitnessTotal = $this->sumFitnessvalue($project_fit[$key]);
+
+            $fitness_project[$key] = $fitnessValue;
+            $fitnessTotal[$key] = $this->sumFitnessvalue($fitness_project[$key]);
 
             $fitnessEvaluation[$key] = [
                 'populasi' =>  $fitnessIndividu,
@@ -258,12 +258,12 @@ class Fitness
         return $fitnessEvaluation;
     }
 
-    function probabilitySearch($fitness, $total)
+    function countProbability($fitness, $total)
     {
         return floatval($fitness / $total);
     }
 
-    function probabilityIndividu()
+    function probability()
     {
         foreach ($this->fitnessEvaluation() as $key => $val) {
             //  print_r('Project ' . $key . ' ');
@@ -272,18 +272,19 @@ class Fitness
                 //  echo '<br>';
 
                 $probabilityIndividu[$key_individu] = [
-                    'probability' => abs($this->probabilitySearch($val_individu['fitnessValue'], $val['totalFitness'])),
+                    'probability' => $this->countProbability(floatval($val_individu['fitness']), floatval($val['totalFitness'][$key])),
                     'A' => $val_individu['A'],
                     'B' => $val_individu['B'],
                     'PM' => $val_individu['PM'],
                     'months' => $val_individu['months'],
-                    'fitness' => $val_individu['fitnessValue'],
+                    'fitness' => $val_individu['fitness'],
+                    'totalFitess' => $val['totalFitness'][$key]
                 ];
 
                 //  print_r($probabilityIndividu[$key_individu]);
             }
             $populasi[$key] = $probabilityIndividu;
-            asort($probabilityIndividu);
+            // asort($probabilityIndividu);
 
             // echo '<p>';
         }
@@ -292,40 +293,43 @@ class Fitness
         return $populasi;
     }
 
-    function probabilityKomulatif()
+    function comulativeProbability()
     {
-        foreach ($this->probabilityIndividu() as  $key => $val) {
+        foreach ($this->probability() as  $key => $val) {
             print_r('Project ' . $key . ' ');
             $temp = 0;
             foreach ($val as $key_individu => $val_individu) {
                 echo '<br>';
                 if ($key_individu == 0) {
-                    $temp = floatval($val_individu['probability'] + 0);
+                    $temp = abs($val_individu['probability'] + 0);
                     $probabilityKomulatif[$key_individu] = [
-                        'probability' => $val_individu['probability'],
                         'komulatif' =>   $temp,
+                        'probability' => $val_individu['probability'],
                         'A' => $val_individu['A'],
                         'B' => $val_individu['B'],
                         'PM' => $val_individu['PM'],
                         'months' => $val_individu['months'],
                         'fitness' => $val_individu['fitness'],
+                        'totalFitess' => $val_individu['totalFitess'],
                     ];
                 } else {
-                    $temp += floatval($val_individu['probability']);
+                    $temp += abs($val_individu['probability']);
                     $probabilityKomulatif[$key_individu] = [
-                        'probability' => $val_individu['probability'],
                         'komulatif' => $temp,
+                        'probability' => $val_individu['probability'],
                         'A' => $val_individu['A'],
                         'B' => $val_individu['B'],
                         'PM' => $val_individu['PM'],
                         'months' => $val_individu['months'],
                         'fitness' => $val_individu['fitness'],
+                        'totalFitess' => $val_individu['totalFitess'],
                     ];
                 }
                 // $komulatif =   $val[$key_individu]['probability'];
 
                 print_r($probabilityKomulatif[$key_individu]);
             }
+            // asort($probabilityKomulatif);
 
             echo '<p>';
         }
@@ -342,4 +346,4 @@ $cocomo = (new COCOMO93($CocomoNasa93Processor->putScales(), $population))->Pers
 // print_r($cocomo->PersonMounth());
 
 $fitness = new Fitness($cocomo);
-print_r($fitness->probabilityKomulatif());
+print_r($fitness->comulativeProbability());
