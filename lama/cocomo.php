@@ -5,7 +5,7 @@ use Population as GlobalPopulation;
 
 class Parameter
 {
-    const file_name = 'cocomo_nasa93.txt';
+    const file_name = '../cocomo_nasa93.txt';
     const mr = 0.01;
     const populationSize = 30;
     const cr = 0.9;
@@ -218,7 +218,7 @@ class Fitness
     }
     function RelativeError($estimasiPM, $actualPM)
     {
-        return floatval($estimasiPM - $actualPM);
+        return abs($estimasiPM - $actualPM);
     }
 
     function sumFitnessvalue($fitnessValue)
@@ -324,15 +324,97 @@ class Fitness
                         'fitness' => $val_individu['fitness'],
                         'totalFitess' => $val_individu['totalFitess'],
                     ];
+                    // $roulete = [
+                    //     $probabilityKomulatif[$key_individu]['komullatif']
+                    // ];
                 }
-                // $komulatif =   $val[$key_individu]['probability'];
 
                 print_r($probabilityKomulatif[$key_individu]);
             }
-            // asort($probabilityKomulatif);
+            // ---asort($probabilityKomulatif);
+            $populasi[$key] = $probabilityKomulatif;
+            echo '<p>';
+        }
+        // return $populasi;
+    }
+}
+
+class Selection
+{
+    function __construct($populasi)
+    {
+        $this->populasi = $populasi;
+    }
+    function randomZeroToOne()
+    {
+        for ($i = 0; $i < 30; $i++) {
+            $r[$i] = (float) rand() / (float) getrandmax();
+        }
+        return $r;
+    }
+
+    function rouletteWheel()
+    {
+        $population = $this->populasi;
+        $r =  $this->randomZeroToOne();
+
+        for ($i = 0; $i > 30; $i++) {
+            print_r($population[0][$i]);
+            echo '<br>';
+        }
+
+
+        for ($i = 0; $i < 1; $i++) { //perulangan project
+            print_r('project ' . $i);
+
+            echo '<br>';
+            for ($j = 0; $j < 30; $j++) {  //perulangan bilangan acak random
+
+                print_r($j . '->');
+                print_r($r[$j]);
+                echo '<br>';
+                for ($k = 0; $k < 30; $k++) { //perulangan kromosom
+
+                    if ($k > 30) {
+                        if ($r[$j] > $population[$i][$k - 1]['komulatif'] && $r[$j] < $population[$i][$k]['komulatif']) {
+                            $rouletWhile = [
+                                // $population[$i][$k]['komulatif']
+                                $k
+                            ];
+                        }
+                    }
+                    if ($r[$j] > $population[$i][$k]['komulatif'] && $r[$j] < $population[$i][$k + 1]['komulatif']) {
+                        $rouletWhile = [
+                            // $population[$i][$k + 1]['komulatif']
+                            $k
+                        ];
+                    }
+                }
+
+                echo '<br>';
+                // echo 'routeWhile : ';
+                print_r($rouletWhile);
+                echo '<p>';
+            }
 
             echo '<p>';
         }
+
+
+        // foreach ($this->populasi as $key => $val) {
+        //     print_r('Project ' . $key);
+
+        //     foreach ($val as $key_individu => $val_individu) {
+        //         echo '<br>';
+        //         print_r('c ' . $key_individu . '->');
+        //         print_r($val[$key_individu]);
+
+        //         if($r[$key_individu] > $val[$key_individu]['komulatif'] && $r[$key_individu]){
+
+        //         }
+        //     }
+        //     echo '<p>';
+        // }
     }
 }
 
@@ -347,3 +429,6 @@ $cocomo = (new COCOMO93($CocomoNasa93Processor->putScales(), $population))->Pers
 
 $fitness = new Fitness($cocomo);
 print_r($fitness->comulativeProbability());
+
+// $rouletwhile = (new Selection($fitness->comulativeProbability()));
+// print_r($rouletwhile->rouletteWheel());
