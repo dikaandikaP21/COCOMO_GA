@@ -432,3 +432,141 @@ print_r($fitness->comulativeProbability());
 
 // $rouletwhile = (new Selection($fitness->comulativeProbability()));
 // print_r($rouletwhile->rouletteWheel());
+
+
+
+
+class CrossoverGenerator
+{
+    function hasParents($population)
+    {
+        for ($i = 0; $i <= count($population) - 1; $i++) {
+            $randomZeroToOne = (new Randomizer)->randomZeroToOne();
+            if ($randomZeroToOne < Parameter::cr) {
+                $parents[$i] = $randomZeroToOne;
+            }
+        }
+        return $parents;
+    }
+
+    function generateCrossover($population)
+    {
+        $ret = [];
+        $count = 0;
+        $parents = $this->hasParents($population);
+        while ($count < 1 && count($parents) === 0) {
+            $parents = $this->hasParents($population);
+            if (count($parents) > 0) {
+                break;
+            }
+            $count = 0;
+        }
+        foreach (array_keys($parents) as $key) {
+            $keys[] = $key;
+        }
+        // print_r($keys);
+        // echo '<p>';
+        foreach ($keys as $key => $val) {
+            // print_r('key-> ' . $key);
+            // echo '<br>';
+            foreach ($keys as $subval) {
+                // print_r('subval-> ' . $subval);
+                // echo '<br>';
+                if ($val !== $subval) {
+                    $ret[] = [$val, $subval];
+                }
+            }
+            array_shift($keys);
+        }
+        return $ret;
+    }
+}
+
+class OneCutPoint
+{
+    function isMaxIndex($cutPointIndex, $lengthOfChromosome)
+    {
+        if ($cutPointIndex === $lengthOfChromosome - 1) {
+            return TRUE;
+        }
+    }
+
+    function offspring($parent1, $parent2, $cutPointIndex, $offspring, $lengthOfChromosome)
+    {
+        $ret = [];
+
+        if ($offspring === 1) {
+            if ($this->isMaxIndex($cutPointIndex, $lengthOfChromosome)) {
+                foreach ($parent2 as $key => $val) {
+                    if ($key < $cutPointIndex) {
+                        $ret[] = $val;
+                    }
+                }
+
+                $ret[] = $parent1[$cutPointIndex][$val[0]];
+            } else {
+                foreach ($parent1 as $key => $val) {
+                    if ($key <= $cutPointIndex) {
+                        $ret[] = $val;
+                    }
+                    if ($key > $cutPointIndex) {
+                        $ret[] = $parent2[$key][$val];
+                    }
+                }
+            }
+        }
+
+        if ($offspring === 2) {
+            if ($this->isMaxIndex($cutPointIndex, $lengthOfChromosome)) {
+                foreach ($parent1 as $key => $val) {
+                    if ($key < $cutPointIndex) {
+                        $ret[] = $val;
+                    }
+                }
+                $ret[] = $parent2[$cutPointIndex]['B'];
+            } else {
+                foreach ($parent2 as $key => $val) {
+                    if ($key <= $cutPointIndex) {
+                        $ret[] = $val;
+                    }
+                    if ($key > $cutPointIndex) {
+                        $ret[] = $parent1[$key][$val];
+                    }
+                }
+            }
+        }
+        return $ret;
+    }
+
+    public function crossover($population, $lengthOfChromosome)
+    {
+        $randomizer = new Randomizer;
+        $crossoverGenerator = new CrossoverGenerator;
+        $parents = $crossoverGenerator->generateCrossover($population);
+
+        $ret = [];
+        foreach ($parents as $parent) {
+            // print_r($parent);
+            $cutPointIndex = $randomizer->getCutPointIndex();
+            // echo 'Cut:' . $cutPointIndex;
+            // echo '<br>';
+            // echo 'Parents: <br>';
+            // print_r($population[$parent[0]]);
+            $parent1 = $population[$parent[0]];
+            // echo '<br>';
+            // print_r($population[$parent[1]]);
+            $parent2 = $population[$parent[1]];
+            // echo '<br>';
+            // echo 'Offspring:<br>';
+            $offspring1 = $this->offspring($parent1, $parent2, $cutPointIndex, 1, $lengthOfChromosome);
+            //  $offspring2 = $this->offspring($parent1, $parent2, $cutPointIndex, 2, $lengthOfChromosome);
+            print_r($offspring1);
+            //echo '<br>';
+            //print_r($offspring2);
+            //echo '<p></p>';
+            // $ret[] = $offspring1;
+            // $ret[] = $offspring2;
+        }
+        // return $ret;
+    }
+}

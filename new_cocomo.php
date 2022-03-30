@@ -1,11 +1,14 @@
 <?php
 
+use CrossoverGenerator as GlobalCrossoverGenerator;
+use OneCutPoint as GlobalOneCutPoint;
+
 class Parameter
 {
     const file_name = 'cocomo_nasa93.txt';
     const mr = 0.01;
     const populationSize = 30;
-    const cr = 0.9;
+    const CR = 0.80;
 }
 
 class CocomoNasa93Processor
@@ -154,6 +157,12 @@ class Randomizer
     {
         return (float) rand() / (float) getrandmax();
     }
+    function getCutPointIndex()
+    {
+        $lengthOfGen = (new Individu)->countNumberOfGen();
+
+        return rand(0, $lengthOfGen - 1);
+    }
 }
 
 class Fitness
@@ -186,21 +195,154 @@ class Fitness
 
 class Select
 {
-    function rouletteWheel($cromosom)
+    function rouletteWheel($cromosoms)
     {
         for ($i = 0; $i < Parameter::populationSize; $i++) {
             $r = (new Randomizer())->randomZeroToOne();
-            foreach ($cromosom as $key => $val) {
+            foreach ($cromosoms as $key => $val) {
                 if ($r <= $val['komulatif']) {
-                    echo '<br>';
-                    print_r($r . ' <= ' . $val['komulatif'] . ' = ' . $key);
+                    // echo '<br>';
+                    // print_r($r . ' <= ' . $val['komulatif'] . ' = ' . $key);
                     $key;
                     break;
                 }
             }
-            $newPopulations[$i] = $cromosom[$key];
+            $newPopulations[$i] = $cromosoms[$key];
         }
-        //  return $newPopulations;
+        return ($newPopulations);
+    }
+}
+
+class CrossoverGenerator
+{
+    function hasParents($population)
+    {
+        for ($i = 0; $i <= count($population) - 1; $i++) {
+            $randomZeroToOne = (new Randomizer)->randomZeroToOne();
+            if ($randomZeroToOne < Parameter::CR) {
+                $parents[$i] = $randomZeroToOne;
+            }
+        }
+        return $parents;
+    }
+
+    function generateCrossover($population)
+    {
+        $ret = [];
+        $count = 0;
+        $parents = $this->hasParents($population);
+
+        while ($count < 1 && count($parents) === 0) {
+            $parents = $this->hasParents($population);
+            if (count($parents) > 0) {
+                break;
+            }
+            $count = 0;
+        }
+
+        foreach (array_keys($parents) as $key) {
+            $keys[] = $key;
+        }
+
+        foreach ($keys as $key => $val) {
+            foreach ($keys as $subval) {
+                if ($val !== $subval) {
+                    $ret[] = [$val, $subval];
+                }
+            }
+            array_shift($keys);
+        }
+
+        return $ret;
+    }
+}
+
+
+class OneCutPoint
+{
+    function isMaxIndex($cutPointIndex, $lengthOfChromosome)
+    {
+        if ($cutPointIndex === $lengthOfChromosome - 1) {
+            return TRUE;
+        }
+    }
+
+
+    function offspring($parent1, $parent2, $cutPointIndex, $offspring, $lengthOfChromosome)
+    {
+        $ret = [];
+
+        if ($offspring === 1) {
+            if ($this->isMaxIndex($cutPointIndex, $lengthOfChromosome)) {
+                $ret['A'] = $parent1['A'];
+                foreach ($parent2 as $key => $val) {
+                    if ($key = 'B') {
+                        $ret[$key] =  $parent2['B'];
+                    }
+                }
+            } else {
+                foreach ($parent2 as $key => $val) {
+                    if ($key = 'A') {
+                        $ret[$key] = $parent2['A'];
+                    }
+                }
+                $ret['B'] = $parent1['B'];
+            }
+        }
+
+        // if ($offspring === 2) {
+        //     if ($this->isMaxIndex($cutPointIndex, $lengthOfChromosome)) {
+        //         $ret['A'] = $parent2['A'];
+        //         foreach ($parent1 as $key => $val) {
+        //             if ($key = 'B') {
+        //                 $ret[$key] = $parent1['B'];
+        //             }
+        //         }
+        //     } else {
+        //         foreach ($parent1 as $key => $val) {
+        //             if ($key = 'A') {
+        //                 $ret[$key] = $parent1['A'];
+        //             }
+        //         }
+        //         $ret['B'] = $parent2['B'];
+        //     }
+        // }
+        return $ret;
+    }
+
+    function crossover($population, $lengthOfChromosome)
+    {
+        $randomizer = new Randomizer;
+        $crossoverGenerator = new CrossoverGenerator;
+        $parents = $crossoverGenerator->generateCrossover($population);
+
+        $ret = [];
+        // print_r($parents);
+        // echo '<p>';
+        // $i = 0;
+        foreach ($parents as $parent) {
+            // echo ($i++);
+            $cutPointIndex = $randomizer->getCutPointIndex();
+            echo 'Cut:' . $cutPointIndex;
+            echo '<br>';
+            echo 'Parents: <br>';
+            print_r($population[$parent[0]]);
+            $parent1 = $population[$parent[0]];
+            echo '<br>';
+            print_r($population[$parent[1]]);
+            $parent2 = $population[$parent[1]];
+            echo '<br>';
+            echo 'Offspring:<br>';
+            $offspring1 = $this->offspring($parent1, $parent2, $cutPointIndex, 1, $lengthOfChromosome);
+            //  $offspring2 = $this->offspring($parent1, $parent2, $cutPointIndex, 2, $lengthOfChromosome);
+            print_r($offspring1);
+            // echo '<br>';
+            // print_r($offspring2);
+            echo '<p></p>';
+            $ret[] = $offspring1;
+            // $ret[] = $offspring2;
+        }
+        //  return $ret;
     }
 }
 
@@ -210,14 +352,16 @@ class Main
     {
         $project = (new CocomoNasa93Processor)->putScales();
         $cocomo93 = new Cocomo93;
-
         $population = (new Population)->createPopulation();
-        $randomizer = (new Randomizer);
-
         $fitness = new Fitness;
         $selection = new Select;
+        $crossoverGenerator = new CrossoverGenerator;
+        $oneCutPoint = new OneCutPoint;
 
-        for ($i = 0; $i < 93; $i++) {
+
+
+
+        for ($i = 0; $i < 2; $i++) {
             echo ('project' . $i);
             echo '<br>';
 
@@ -243,7 +387,7 @@ class Main
                 $komulatif = $fitness->Komulatif($key, $probability, $komulatif);
 
 
-                $cromosom[$key] = [
+                $cromosoms[$key] = [
                     'komulatif' => $komulatif,
                     'probability' => $probability,
                     'A' => $val['A'],
@@ -253,11 +397,18 @@ class Main
                     'fitness' => $fitnessVal,
                     'totalFitness' => $totalFitness,
                 ];
-                print_r($cromosom[$key]);
+                print_r($cromosoms[$key]);
                 echo '<br>';
             }
             //----------roulete wheel
-            $selection->rouletteWheel($cromosom);
+            $newPopulation =   $selection->rouletteWheel($cromosoms);
+
+            //crossover
+            // print_r($crossoverGenerator->generateCrossover($population));
+            $lengthOfChromosome = (new Individu)->countNumberOfGen();
+            print_r($oneCutPoint->crossover($newPopulation, $lengthOfChromosome));
+
+
             echo '<p>';
         }
     }
