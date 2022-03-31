@@ -1,7 +1,6 @@
 <?php
 
-use CrossoverGenerator as GlobalCrossoverGenerator;
-use OneCutPoint as GlobalOneCutPoint;
+
 
 class Parameter
 {
@@ -316,33 +315,47 @@ class OneCutPoint
         $crossoverGenerator = new CrossoverGenerator;
         $parents = $crossoverGenerator->generateCrossover($population);
 
-        $ret = [];
-        // print_r($parents);
-        // echo '<p>';
-        // $i = 0;
+        //    $ret = [];
+        // foreach ($population as $key => $cromosome) {  //
+        //     echo ($key . '');                          //
+        //     print_r($cromosome);                       //
+        //     echo '<br>';                               //
+        // }
+
         foreach ($parents as $parent) {
-            // echo ($i++);
+
+            // echo '<br>';
+            // print_r($parent);
+            // echo '<br>';
             $cutPointIndex = $randomizer->getCutPointIndex();
-            echo 'Cut:' . $cutPointIndex;
-            echo '<br>';
-            echo 'Parents: <br>';
-            print_r($population[$parent[0]]);
+            // echo 'Cut:' . $cutPointIndex;
+            // echo '<br>';
+            // echo 'Parents: <br>';
+            // print_r($population[$parent[0]]);
             $parent1 = $population[$parent[0]];
-            echo '<br>';
-            print_r($population[$parent[1]]);
+            // echo '<br>';
+            // print_r($population[$parent[1]]);
             $parent2 = $population[$parent[1]];
-            echo '<br>';
-            echo 'Offspring:<br>';
+            // echo '<br>';
+            // echo 'Offspring:<br>';
             $offspring1 = $this->offspring($parent1, $parent2, $cutPointIndex, 1, $lengthOfChromosome);
             //  $offspring2 = $this->offspring($parent1, $parent2, $cutPointIndex, 2, $lengthOfChromosome);
-            print_r($offspring1);
-            // echo '<br>';
+            // print_r($offspring1);
+            //echo '<br>';
             // print_r($offspring2);
-            echo '<p></p>';
-            $ret[] = $offspring1;
+            // echo '<p></p>';
+            // $ret[] = $offspring1;
             // $ret[] = $offspring2;
+
+            $population[$parent[0]]['A'] = $offspring1['A'];
+            $population[$parent[0]]['B'] = $offspring1['B'];
+            $populationOffsprings[] = $population[$parent[0]];
+            // print_r($populationOffsprings);
+            // echo '<br>';
         }
-        //  return $ret;
+
+
+        return $populationOffsprings;
     }
 }
 
@@ -361,7 +374,7 @@ class Main
 
 
 
-        for ($i = 0; $i < 2; $i++) {
+        for ($i = 0; $i < 93; $i++) {
             echo ('project' . $i);
             echo '<br>';
 
@@ -379,7 +392,7 @@ class Main
             //perhitungan ke populasi 
             $komulatif = 0;
             foreach ($population as $key => $val) {
-                print_r($key);
+                //  print_r($key);
 
                 $PM = $cocomo93->estimatingEffort($val, $SF, $project[$i]['kloc'], $EM);
                 $fitnessVal = $fitness->RelativeError(floatval($PM), floatval($project[$i]['months']));
@@ -397,18 +410,62 @@ class Main
                     'fitness' => $fitnessVal,
                     'totalFitness' => $totalFitness,
                 ];
-                print_r($cromosoms[$key]);
-                echo '<br>';
+                // print_r($cromosoms[$key]);
+                //echo '<br>';
             }
             //----------roulete wheel
             $newPopulation =   $selection->rouletteWheel($cromosoms);
-
+            //  echo '<p>';
             //crossover
-            // print_r($crossoverGenerator->generateCrossover($population));
             $lengthOfChromosome = (new Individu)->countNumberOfGen();
-            print_r($oneCutPoint->crossover($newPopulation, $lengthOfChromosome));
+            $populationOffsprings = $oneCutPoint->crossover($newPopulation, $lengthOfChromosome);
+
+            foreach ($populationOffsprings as $key => $cromosomeOffsprings) {
+                // print_r($key);
+
+                $PMOffsprings = $cocomo93->estimatingEffort($cromosomeOffsprings, $SF, $project[$i]['kloc'], $EM);
+                $fitnessValOffspring = $fitness->RelativeError(floatval($PMOffsprings), floatval($project[$i]['months']));
+
+                $newcromosomeOffsprings[$key] = [
+                    'fitness' => $fitnessValOffspring,
+                    'A' => $cromosomeOffsprings['A'],
+                    'B' => $cromosomeOffsprings['B'],
+                    'PM' => $PMOffsprings,
+                    'month' => $project[$i]['months'],
+                    'totalFitness' => $cromosomeOffsprings['totalFitness'],
+                    'probability' => $cromosomeOffsprings['probability'],
+                    'komulatif' => $cromosomeOffsprings['komulatif']
+
+                ];
+                // print_r($newcromosomeOffsprings[$key]);
+                // echo '<br>';
+            }
+
+            $mergePopulasi = array_merge($cromosoms, $newcromosomeOffsprings);
 
 
+            foreach ($mergePopulasi as $key => $val) {
+                // print_r($key);
+                $populations[$key] = [
+                    'fitness' => $val['fitness'],
+                    'A' => $val['A'],
+                    'B' => $val['B'],
+                    'PM' => $val['PM'],
+                    'month' => $val['month'],
+                    'totalFitness' => $val['totalFitness'],
+                    'probability' => $val['probability'],
+                    'komulatif' => $val['komulatif']
+                ];
+                // print_r($populations[$key]);
+                //echo '<br>';
+            }
+            sort($populations);
+            $populationss = array_slice($populations, 0, 30);
+            foreach ($populationss as $key => $val) {
+                print_r($key);
+                print_r($val);
+                echo '<br>';
+            }
             echo '<p>';
         }
     }
