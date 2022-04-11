@@ -1,6 +1,6 @@
 <?php
-
-
+// include_once "population.php";
+require "algen.php";
 class Parameter
 {
     const file_name = 'cocomo_nasa93.txt';
@@ -31,3 +31,5 @@ class Main
         }
     }
 }
+
+$main = (new Main)->runMain();

@@ -10,12 +10,12 @@ include 'mutation.php';
 
 class Algen
 {
-    function runMain()
+    function runMain($randomPopulation)
     {
         $project = (new CocomoNasa93Processor)->putScales();
         $cocomo93 = new Cocomo93;
         $population = new Population;
-        $randomPopulation = $population->createPopulation();
+        // $randomPopulation = $population->createPopulation();
         $selection = new Selection;
         $oneCutPoint = new OneCutPoint;
         $temp = new Temp;
@@ -56,12 +56,12 @@ class Algen
             sort($populations);
 
 
-            foreach ($populations as $key => $val) {
-                print_r($key);
-                print_r($val);
-                echo '<br>';
-            }
-            // print_r($populations);
+            // foreach ($populations as $key => $val) {
+            //     print_r($key);
+            //     print_r($val);
+            //     echo '<br>';
+            // }
+
             echo '<p>';
         }
         return $populations;

@@ -1,9 +1,9 @@
 <?php
 
-// include 'main.php';
-include 'individu.php';
+include 'main.php';
+include_once 'individu.php';
 // include 'calc-cocomo.php';
-include 'fitness.php';
+include_once 'fitness.php';
 
 class Population
 {
