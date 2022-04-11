@@ -1,13 +1,12 @@
 <?php
 
 
-
 class Parameter
 {
     const file_name = 'cocomo_nasa93.txt';
     const mr = 0.01;
     const populationSize = 30;
-    const CR = 0.80;
+    const CR = 0.8;
 }
 
 class CocomoNasa93Processor
@@ -18,7 +17,7 @@ class CocomoNasa93Processor
         foreach ($raw_dataset as $val) {
             $data[] = explode(",", $val);
         }
-        //  print_r($data);
+
         $columnIndexes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25];
         $columns = ['prec', 'flex', 'resl', 'team', 'pmat', 'rely', 'data', 'cplx', 'ruse', 'docu', 'time', 'stor', 'pvol', 'acap', 'pcap', 'pcon', 'apex', 'plex', 'ltex', 'tool', 'site', 'sced', 'kloc', 'actualEffort', 'defects', 'months'];
         foreach ($data as $key => $val) {
@@ -148,6 +147,43 @@ class Population
 
         return $population;
     }
+
+    function populations($population, $SF, $kloc, $EM, $month)
+    {
+
+        $fitness = new Fitness;
+        $cocomo93 = new Cocomo93;
+        //menjumlahkan fitness
+        foreach ($population as $key => $val) {
+            $PM = $cocomo93->estimatingEffort($val, $SF, $kloc, $EM);
+            $fitnessValue[$key] =   $fitness->RelativeError(floatval($PM), floatval($month));
+        }
+        $totalFitness = $fitness->sumFitnessvalue($fitnessValue);
+
+        //perhitungan ke populasi 
+        $komulatif = 0;
+        foreach ($population as $key => $val) {
+            // print_r($key . ' ');
+            $PM = $cocomo93->estimatingEffort($val, $SF, $kloc, $EM);
+            $fitnessVal = $fitness->RelativeError(floatval($PM), floatval($month));
+            $probability = $fitness->Probability($fitness->RelativeError(floatval($PM), floatval($month)), $totalFitness);
+            $komulatif = $fitness->Komulatif($key, $probability, $komulatif);
+
+            $cromosome[$key] = [
+                'komulatif' => $komulatif,
+                'probability' => $probability,
+                'A' => $val['A'],
+                'B' => $val['B'],
+                'PM' => $PM,
+                'month' => $month,
+                'fitness' => $fitnessVal,
+                'totalFitness' => $totalFitness,
+            ];
+            // print_r($cromosome[$key]);
+            // echo '<br>';
+        }
+        return $cromosome;
+    }
 }
 
 class Randomizer
@@ -161,6 +197,10 @@ class Randomizer
         $lengthOfGen = (new Individu)->countNumberOfGen();
 
         return rand(0, $lengthOfGen - 1);
+    }
+    function getRandomIndexOfIndividu($popSize)
+    {
+        return rand(0, $popSize - 1);
     }
 }
 
@@ -289,23 +329,6 @@ class OneCutPoint
             }
         }
 
-        // if ($offspring === 2) {
-        //     if ($this->isMaxIndex($cutPointIndex, $lengthOfChromosome)) {
-        //         $ret['A'] = $parent2['A'];
-        //         foreach ($parent1 as $key => $val) {
-        //             if ($key = 'B') {
-        //                 $ret[$key] = $parent1['B'];
-        //             }
-        //         }
-        //     } else {
-        //         foreach ($parent1 as $key => $val) {
-        //             if ($key = 'A') {
-        //                 $ret[$key] = $parent1['A'];
-        //             }
-        //         }
-        //         $ret['B'] = $parent2['B'];
-        //     }
-        // }
         return $ret;
     }
 
@@ -316,12 +339,6 @@ class OneCutPoint
         $parents = $crossoverGenerator->generateCrossover($population);
 
         //    $ret = [];
-        // foreach ($population as $key => $cromosome) {  //
-        //     echo ($key . '');                          //
-        //     print_r($cromosome);                       //
-        //     echo '<br>';                               //
-        // }
-
         foreach ($parents as $parent) {
 
             // echo '<br>';
@@ -339,13 +356,10 @@ class OneCutPoint
             // echo '<br>';
             // echo 'Offspring:<br>';
             $offspring1 = $this->offspring($parent1, $parent2, $cutPointIndex, 1, $lengthOfChromosome);
-            //  $offspring2 = $this->offspring($parent1, $parent2, $cutPointIndex, 2, $lengthOfChromosome);
             // print_r($offspring1);
             //echo '<br>';
-            // print_r($offspring2);
             // echo '<p></p>';
             // $ret[] = $offspring1;
-            // $ret[] = $offspring2;
 
             $population[$parent[0]]['A'] = $offspring1['A'];
             $population[$parent[0]]['B'] = $offspring1['B'];
@@ -354,8 +368,153 @@ class OneCutPoint
             // echo '<br>';
         }
 
-
         return $populationOffsprings;
+    }
+}
+class Temp
+{
+    function sameKey($Population)
+    {
+        foreach ($Population as $key => $val) {
+            $populations[$key] = [
+                'fitness' => $val['fitness'],
+                'A' => $val['A'],
+                'B' => $val['B'],
+                'PM' => $val['PM'],
+                'month' => $val['month'],
+                'totalFitness' => $val['totalFitness'],
+                'probability' => $val['probability'],
+                'komulatif' => $val['komulatif']
+            ];
+        }
+        return $populations;
+    }
+}
+
+class Mutation
+{
+
+    function calcGenInPopulations($lengthOfChromosome, $populations)
+    {
+        return ($lengthOfChromosome * count($populations));
+    }
+
+    function calcMutationRate($lengthOfChromosome)
+    {
+        //return floatval(1 / $lengthOfChromosome);
+        return 0.1;
+    }
+
+    function calcNumOfMutation($mutationRate, $lengthOfChromosome, $populations)
+    {
+        return round($mutationRate * $this->calcGenInPopulations($lengthOfChromosome, $populations));
+    }
+
+    function convertIndex($indexOfGen)
+    {
+        if ($indexOfGen == 0) {
+            return 'A';
+        } else {
+            return 'B';
+        }
+    }
+
+    function mainMutation($lengthOfChromosome, $populations)
+    {
+        $randomizer = new Randomizer;
+        $valueRandomGen = new Individu;
+
+        $mutationRate = $this->calcMutationRate($lengthOfChromosome);
+        $numOfMutation = $this->calcNumOfMutation($mutationRate, $lengthOfChromosome, $populations);
+
+        for ($i = 0; $i <= $numOfMutation - 1; $i++) {
+            $indexOfIndividu = $randomizer->getRandomIndexOfIndividu(count($populations));
+
+            $indexOfGen = $randomizer->getCutPointIndex($lengthOfChromosome);
+            $indexOfGen = $this->convertIndex($indexOfGen);
+
+            $mutatedIndividu = $populations[$indexOfIndividu];
+
+            $valueOfGenIndividu =  $mutatedIndividu[$indexOfGen]; //
+            $valueOfGenMutated = $valueRandomGen->createIndividu()[$indexOfGen];
+
+            // print_r('key' . $indexOfIndividu); //
+            // print_r($mutatedIndividu); //
+            // echo '<br>'; //
+            // print_r($indexOfGen . '=' . $valueOfGenIndividu . '-> ' . $valueOfGenMutated); //
+            // echo '<br>'; //
+            $mutatedIndividu[$indexOfGen] = $valueOfGenMutated;
+            // print_r('mutated'); //
+            // print_r($mutatedIndividu); //
+            // echo '<br>'; //
+
+            $populations[$indexOfIndividu] = $mutatedIndividu;
+            // echo '<br>'; //
+        }
+        return $populations;
+    }
+}
+
+class Algen
+{
+    function runAlgen($randomPopulation)
+    {
+        $project = (new CocomoNasa93Processor)->putScales();
+        $cocomo93 = new Cocomo93;
+        $population = new Population;
+        // $randomPopulation = $population->createPopulation();
+        $selection = new Select;
+        // $crossoverGenerator = new CrossoverGenerator;
+        $oneCutPoint = new OneCutPoint;
+        $temp = new Temp;
+        $mutation = new Mutation;
+
+
+        for ($i = 0; $i < 1; $i++) {
+            echo ('project' . $i);
+            echo '<br>';
+
+            $SF = $cocomo93->ScaleFactor($project[$i]);
+            $EM = $cocomo93->EffortMultipyer($project[$i]);
+
+            //hitung dengan populasi awal
+            $populations = $population->populations($randomPopulation, $SF, $project[$i]['kloc'], $EM, $project[$i]['months']);
+
+            //roulete wheel menghasilkan populasi baru
+            $newPopulation =   $selection->rouletteWheel($populations);
+
+            //crossover menghasilkan populasi offsprings
+            $lengthOfChromosome = (new Individu)->countNumberOfGen();
+            $populationOffsprings = $oneCutPoint->crossover($newPopulation, $lengthOfChromosome);
+
+            //hitung cocomo dengan populasi offsprings
+            $newPopulationOffspring =  $population->populations($populationOffsprings, $SF, $project[$i]['kloc'], $EM, $project[$i]['months']);
+
+            //gabungkan population(roulette wheel) dengan population offsprings
+            $mergePopulation = array_merge($newPopulation, $newPopulationOffspring);
+            $populations = $temp->sameKey($mergePopulation);
+            sort($populations);
+            $populations = array_slice($populations, 0, Parameter::populationSize);
+
+            //populasi di mutasi
+            $populationMutated = $mutation->mainMutation($lengthOfChromosome, $populations);
+
+            //hitung kembali dengan cocomo
+            $populations = $population->populations($populationMutated, $SF, $project[$i]['kloc'], $EM, $project[$i]['months']);
+            $populations = $temp->sameKey($populations);
+            sort($populations);
+
+            foreach ($populations as $key => $val) {
+                print_r($key);
+                print_r($val);
+                echo '<br>';
+            }
+
+            //  $lastPopulations[$i] = $populations[0];
+            echo '<p>';
+        }
+
+        return $populations;
     }
 }
 
@@ -363,110 +522,21 @@ class Main
 {
     function runMain()
     {
-        $project = (new CocomoNasa93Processor)->putScales();
-        $cocomo93 = new Cocomo93;
-        $population = (new Population)->createPopulation();
-        $fitness = new Fitness;
-        $selection = new Select;
-        $crossoverGenerator = new CrossoverGenerator;
-        $oneCutPoint = new OneCutPoint;
+        $algen = new Algen;
+        $population = new Population;
+        $randomPopulation = $population->createPopulation();
 
+        $i = 1;
+        while ($i <= 3) {
 
+            $lastPopulation = $algen->runAlgen($randomPopulation);
+            $selectedIndividu[$i] = $lastPopulation[0];
+            $randomPopulation =  $lastPopulation;
 
-
-        for ($i = 0; $i < 93; $i++) {
-            echo ('project' . $i);
-            echo '<br>';
-
-            $SF = $cocomo93->ScaleFactor($project[$i]);
-            $EM = $cocomo93->EffortMultipyer($project[$i]);
-
-
-            //------------menjumlahkan fitness
-            foreach ($population as $key => $val) {
-                $PM = $cocomo93->estimatingEffort($val, $SF, $project[$i]['kloc'], $EM);
-                $fitnessValue[$key] =   $fitness->RelativeError(floatval($PM), floatval($project[$i]['months']));
-            }
-            $totalFitness = $fitness->sumFitnessvalue($fitnessValue);
-
-            //perhitungan ke populasi 
-            $komulatif = 0;
-            foreach ($population as $key => $val) {
-                //  print_r($key);
-
-                $PM = $cocomo93->estimatingEffort($val, $SF, $project[$i]['kloc'], $EM);
-                $fitnessVal = $fitness->RelativeError(floatval($PM), floatval($project[$i]['months']));
-                $probability = $fitness->Probability($fitness->RelativeError(floatval($PM), floatval($project[$i]['months'])), $totalFitness);
-                $komulatif = $fitness->Komulatif($key, $probability, $komulatif);
-
-
-                $cromosoms[$key] = [
-                    'komulatif' => $komulatif,
-                    'probability' => $probability,
-                    'A' => $val['A'],
-                    'B' => $val['B'],
-                    'PM' => $PM,
-                    'month' => $project[$i]['months'],
-                    'fitness' => $fitnessVal,
-                    'totalFitness' => $totalFitness,
-                ];
-                // print_r($cromosoms[$key]);
-                //echo '<br>';
-            }
-            //----------roulete wheel
-            $newPopulation =   $selection->rouletteWheel($cromosoms);
-            //  echo '<p>';
-            //crossover
-            $lengthOfChromosome = (new Individu)->countNumberOfGen();
-            $populationOffsprings = $oneCutPoint->crossover($newPopulation, $lengthOfChromosome);
-
-            foreach ($populationOffsprings as $key => $cromosomeOffsprings) {
-                // print_r($key);
-
-                $PMOffsprings = $cocomo93->estimatingEffort($cromosomeOffsprings, $SF, $project[$i]['kloc'], $EM);
-                $fitnessValOffspring = $fitness->RelativeError(floatval($PMOffsprings), floatval($project[$i]['months']));
-
-                $newcromosomeOffsprings[$key] = [
-                    'fitness' => $fitnessValOffspring,
-                    'A' => $cromosomeOffsprings['A'],
-                    'B' => $cromosomeOffsprings['B'],
-                    'PM' => $PMOffsprings,
-                    'month' => $project[$i]['months'],
-                    'totalFitness' => $cromosomeOffsprings['totalFitness'],
-                    'probability' => $cromosomeOffsprings['probability'],
-                    'komulatif' => $cromosomeOffsprings['komulatif']
-
-                ];
-                // print_r($newcromosomeOffsprings[$key]);
-                // echo '<br>';
-            }
-
-            $mergePopulasi = array_merge($cromosoms, $newcromosomeOffsprings);
-
-
-            foreach ($mergePopulasi as $key => $val) {
-                // print_r($key);
-                $populations[$key] = [
-                    'fitness' => $val['fitness'],
-                    'A' => $val['A'],
-                    'B' => $val['B'],
-                    'PM' => $val['PM'],
-                    'month' => $val['month'],
-                    'totalFitness' => $val['totalFitness'],
-                    'probability' => $val['probability'],
-                    'komulatif' => $val['komulatif']
-                ];
-                // print_r($populations[$key]);
-                //echo '<br>';
-            }
-            sort($populations);
-            $populationss = array_slice($populations, 0, 30);
-            foreach ($populationss as $key => $val) {
-                print_r($key);
-                print_r($val);
-                echo '<br>';
-            }
+            print_r($selectedIndividu[$i]);
             echo '<p>';
+
+            $i++;
         }
     }
 }
