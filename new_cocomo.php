@@ -464,7 +464,6 @@ class Algen
         $population = new Population;
         // $randomPopulation = $population->createPopulation();
         $selection = new Select;
-        // $crossoverGenerator = new CrossoverGenerator;
         $oneCutPoint = new OneCutPoint;
         $temp = new Temp;
         $mutation = new Mutation;
