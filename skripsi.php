@@ -470,15 +470,9 @@ class Algen
 
 
 
-        // for ($i = 0; $i < 10; $i++) {
-        // echo ('project' . $i);
-        // echo '<br>';
 
-        // $SF = $cocomo93->ScaleFactor($project[$i]);
-        // $EM = $cocomo93->EffortMultipyer($project[$i]);
 
         //hitung dengan populasi awal
-        // $populations = $population->populations($randomPopulation, $SF, $project[$i]['kloc'], $EM, $project[$i]['months']);
         $populations = $population->populations($randomPopulation, $SF, $KLOC, $EM, $months);
 
         //roulete wheel menghasilkan populasi baru
@@ -489,7 +483,6 @@ class Algen
         $populationOffsprings = $oneCutPoint->crossover($newPopulation, $lengthOfChromosome);
 
         //hitung cocomo dengan populasi offsprings
-        // $newPopulationOffspring =  $population->populations($populationOffsprings, $SF, $project[$i]['kloc'], $EM, $project[$i]['months']);
         $newPopulationOffspring =  $population->populations($populationOffsprings, $SF, $KLOC, $EM, $months);
 
         //gabungkan population(roulette wheel) dengan population offsprings
@@ -502,20 +495,9 @@ class Algen
         $populationMutated = $mutation->mainMutation($lengthOfChromosome, $populations);
 
         //hitung kembali dengan cocomo
-        // $populations = $population->populations($populationMutated, $SF, $project[$i]['kloc'], $EM, $project[$i]['months']);
         $populations = $population->populations($populationMutated, $SF, $KLOC, $EM, $months);
         $populations = $temp->sameKey($populations);
         sort($populations);
-
-        // foreach ($populations as $key => $val) {
-        //     print_r($key);
-        //     print_r($val);
-        //     echo '<br>';
-        // }
-
-        //  $lastPopulations[$i] = $populations;
-        // echo '<p>';
-        // }
 
         return $populations;
     }
@@ -531,33 +513,29 @@ class Main
         $population = new Population;
         $randomPopulation = $population->createPopulation();
 
-        //print_r($algen->runAlgen($randomPopulation));
-        //for($r)
-        $i = 1;
-        $temp = 0;
-        for ($k = 0; $k < 93; $k++) { //iterasi project
-            $SF = $cocomo93->ScaleFactor($project[$k]);
-            $EM = $cocomo93->EffortMultipyer($project[$k]);
 
-            for ($i = 0; $i < 30; $i++) {  //iterasi algen
+        for ($r = 0; $r < 30; $r++) {
+            $j = 0;
+            $temp = 0;
+            while ($j < 93) { //iterasi project
+                // for ($j = 0; $j < 93; $j++) { 
+                $SF = $cocomo93->ScaleFactor($project[$j]);
+                $EM = $cocomo93->EffortMultipyer($project[$j]);
 
+                for ($i = 0; $i < 30; $i++) {  //iterasi algen
+                    $lastPopulation = $algen->runAlgen($randomPopulation, $SF, $EM, $project[$j]['kloc'], $project[$j]['months']);
+                    $selectedIndividu[$i] = $lastPopulation[0];
+                    $randomPopulation =  $lastPopulation;
+                }
 
-                $lastPopulation = $algen->runAlgen($randomPopulation, $SF, $EM, $project[$k]['kloc'], $project[$k]['months']);
-                $selectedIndividu[$i] = $lastPopulation[0];
-                $randomPopulation =  $lastPopulation;
-                // print_r($selectedIndividu[$i]);
-                // echo '<br>';
+                sort($selectedIndividu);
+                $temp +=  $selectedIndividu[0]['fitness'];
+
+                $j++;
             }
-
-            sort($selectedIndividu);
-            //$individuProject[$k] = $selectedIndividu[0]['fitness'];
-            //print_r($selectedIndividu[0]['fitness']);
-
-            $temp +=  $selectedIndividu[0]['fitness'];
+            echo ($temp / 93);
+            echo '<br>';
         }
-        echo ($temp / 93);
-        // print_r();
-        // echo '<br>';
     }
 }
 
