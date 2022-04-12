@@ -459,18 +459,12 @@ class Algen
 {
     function runAlgen($randomPopulation, $SF, $EM, $KLOC, $months)
     {
-        // $project = (new CocomoNasa93Processor)->putScales();
-        // $cocomo93 = new Cocomo93;
+
         $population = new Population;
         $selection = new Select;
-        // $crossoverGenerator = new CrossoverGenerator;
         $oneCutPoint = new OneCutPoint;
         $temp = new Temp;
         $mutation = new Mutation;
-
-
-
-
 
         //hitung dengan populasi awal
         $populations = $population->populations($randomPopulation, $SF, $KLOC, $EM, $months);
@@ -513,29 +507,33 @@ class Main
         $population = new Population;
         $randomPopulation = $population->createPopulation();
 
+        $tempAverage = 0;
+        for ($r = 0; $r < 30; $r++) { //iterasi rata-rata 
 
-        for ($r = 0; $r < 30; $r++) {
             $j = 0;
             $temp = 0;
-            while ($j < 93) { //iterasi project
-                // for ($j = 0; $j < 93; $j++) { 
+
+            while ($j < 93) { // project
                 $SF = $cocomo93->ScaleFactor($project[$j]);
                 $EM = $cocomo93->EffortMultipyer($project[$j]);
 
                 for ($i = 0; $i < 30; $i++) {  //iterasi algen
                     $lastPopulation = $algen->runAlgen($randomPopulation, $SF, $EM, $project[$j]['kloc'], $project[$j]['months']);
-                    $selectedIndividu[$i] = $lastPopulation[0];
+                    $selectedIndividu[$i] = $lastPopulation[0]; //ambil individu terkecil fitness dari setiap project
                     $randomPopulation =  $lastPopulation;
                 }
 
                 sort($selectedIndividu);
                 $temp +=  $selectedIndividu[0]['fitness'];
-
                 $j++;
             }
-            echo ($temp / 93);
+            $averageProjectFitness[$r] = $temp / 93;
+            echo ($averageProjectFitness[$r]);
+            $t = array_sum($averageProjectFitness);
             echo '<br>';
         }
+        echo '<p>';
+        print_r($t / 93);
     }
 }
 
