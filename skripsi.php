@@ -502,6 +502,24 @@ class Algen
 
 class Main
 {
+
+    function randomGuessing($temp)
+    {
+        foreach ($temp as $key => $val) {
+            // $unsetTemp = $temp[$key];
+            // unset($temp[$key]);
+
+            $randIndex = rand(0, 92);
+
+            $guessingIndex[$key] = $temp[$randIndex];
+
+
+            // $temp[$key] = $unsetTemp;
+        }
+
+        return $guessingIndex;
+    }
+
     function runMain()
     {
         $project = (new CocomoNasa93Processor)->putScales();
@@ -510,12 +528,9 @@ class Main
         $population = new Population;
         $randomPopulation = $population->createPopulation();
 
-        $tempAverage = 0;
         for ($r = 0; $r < 30; $r++) { //iterasi rata-rata 
 
             $j = 0;
-            $temp = 0;
-
             while ($j < 93) { // project
                 $SF = $cocomo93->ScaleFactor($project[$j]);
                 $EM = $cocomo93->EffortMultipyer($project[$j]);
@@ -527,16 +542,29 @@ class Main
                 }
 
                 sort($selectedIndividu);
-                $temp +=  $selectedIndividu[0]['fitness'];
+                $temp[$j] =  $selectedIndividu[0]['fitness'];
+
                 $j++;
             }
-            $averageProjectFitness[$r] = $temp / 93;
-            echo ($averageProjectFitness[$r]);
-            $t = array_sum($averageProjectFitness);
+            // echo 'temp';
+            // print_r($temp);
+            // echo '<br>';
+            // echo 'guesingTemp';
+            // print_r($this->randomGuessing($temp));
+            // echo '<br>';
+
+            $averageTemp[$r] = array_sum($temp) / 93;
+            $averageGuessingIndexTemp[$r] =   array_sum($this->randomGuessing($temp)) / 93;
+
+            print_r('averageTemp' . $r . '-> ' . $averageTemp[$r] . "   " . 'averageGuess' . $r . '-> ' . $averageGuessingIndexTemp[$r]);
             echo '<br>';
+            // echo '<p>';
         }
+
+        $averageTemp = array_sum($averageTemp);
+        $AveregeGuessingIndex = array_sum($averageGuessingIndexTemp);
         echo '<p>';
-        print_r($t / 93);
+        print_r($averageTemp / 30 . ' -> ' . $AveregeGuessingIndex / 30);
     }
 }
 
