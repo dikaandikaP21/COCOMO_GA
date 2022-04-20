@@ -556,7 +556,7 @@ class Main
             $averageTemp[$r] = array_sum($temp) / 93;
             $averageGuessingIndexTemp[$r] =   array_sum($this->randomGuessing($temp)) / 93;
 
-            print_r('averageTemp' . $r . '-> ' . $averageTemp[$r] . "   " . 'averageGuess' . $r . '-> ' . $averageGuessingIndexTemp[$r]);
+            print_r('averageTemp' . $r . '-> ' . $averageTemp[$r] .   "&nbsp &nbsp"  . 'averageGuess' . $r . '-> ' . $averageGuessingIndexTemp[$r]);
             echo '<br>';
             // echo '<p>';
         }
@@ -564,7 +564,7 @@ class Main
         $averageTemp = array_sum($averageTemp);
         $AveregeGuessingIndex = array_sum($averageGuessingIndexTemp);
         echo '<p>';
-        print_r($averageTemp / 30 . ' -> ' . $AveregeGuessingIndex / 30);
+        print_r(($averageTemp / 30) . ' -> ' . ($AveregeGuessingIndex / 30));
     }
 }
 
