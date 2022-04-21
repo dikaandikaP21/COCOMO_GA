@@ -435,7 +435,7 @@ class Mutation
 
             $mutatedIndividu = $populations[$indexOfIndividu];
 
-            $valueOfGenIndividu =  $mutatedIndividu[$indexOfGen]; //
+            // $valueOfGenIndividu =  $mutatedIndividu[$indexOfGen]; //
             $valueOfGenMutated = $valueRandomGen->createIndividu()[$indexOfGen];
 
             // print_r('key' . $indexOfIndividu); //
@@ -506,18 +506,14 @@ class Main
     function randomGuessing($temp)
     {
         foreach ($temp as $key => $val) {
-            // $unsetTemp = $temp[$key];
-            // unset($temp[$key]);
-
-            $randIndex = rand(0, 92);
-
-            $guessingIndex[$key] = $temp[$randIndex];
-
-
-            // $temp[$key] = $unsetTemp;
+            unset($temp[$key]);
+            foreach ($temp as $keyTemp => $valTemp) {
+                $tempGues[] = $valTemp;
+            }
+            $temp[$key] =  $tempGues[array_rand($tempGues)];
         }
 
-        return $guessingIndex;
+        return $temp;
     }
 
     function runMain()
@@ -546,25 +542,20 @@ class Main
 
                 $j++;
             }
-            // echo 'temp';
-            // print_r($temp);
-            // echo '<br>';
-            // echo 'guesingTemp';
-            // print_r($this->randomGuessing($temp));
-            // echo '<br>';
+
 
             $averageTemp[$r] = array_sum($temp) / 93;
-            $averageGuessingIndexTemp[$r] =   array_sum($this->randomGuessing($temp)) / 93;
+            //  $averageGuessingIndexTemp[$r] =   array_sum($this->randomGuessing($temp)) / 93;
 
-            print_r('averageTemp' . $r . '-> ' . $averageTemp[$r] .   "&nbsp &nbsp"  . 'averageGuess' . $r . '-> ' . $averageGuessingIndexTemp[$r]);
+            //print_r('averageTemp' . '-> ' . $averageTemp[$r] .   "&nbsp &nbsp"  . 'averageGuess' . '-> ' . $averageGuessingIndexTemp[$r]);
             echo '<br>';
-            // echo '<p>';
         }
 
         $averageTemp = array_sum($averageTemp);
-        $AveregeGuessingIndex = array_sum($averageGuessingIndexTemp);
+        //  $AveregeGuessingIndex = array_sum($averageGuessingIndexTemp);
         echo '<p>';
-        print_r(($averageTemp / 30) . ' -> ' . ($AveregeGuessingIndex / 30));
+        print_r($averageTemp / 30);
+        // print_r(($averageTemp / 30) . ' -> ' . ($AveregeGuessingIndex / 30));
     }
 }
 
