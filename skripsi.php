@@ -5,7 +5,7 @@ class Parameter
 {
     const file_name = 'cocomo_nasa93.txt';
     const mr = 0.01;
-    const populationSize = 30;
+    const populationSize = 5;
     const CR = 0.8;
 }
 
@@ -272,7 +272,7 @@ class CrossoverGenerator
         $parents = $this->hasParents($population);
 
         while ($count < 1 && count($parents) === 0) {
-            $parents = $this->hasParents($population);
+            // $parents = $this->hasParents($population);
             if (count($parents) > 0) {
                 break;
             }
@@ -464,7 +464,6 @@ class Algen
         $selection = new Select;
         $oneCutPoint = new OneCutPoint;
         $temp = new Temp;
-
         $mutation = new Mutation;
 
         //hitung dengan populasi awal
@@ -477,7 +476,6 @@ class Algen
         $lengthOfChromosome = (new Individu)->countNumberOfGen();
         $populationOffsprings = $oneCutPoint->crossover($newPopulation, $lengthOfChromosome);
 
-
         //hitung cocomo dengan populasi offsprings
         $newPopulationOffspring =  $population->populations($populationOffsprings, $SF, $KLOC, $EM, $months);
 
@@ -489,7 +487,6 @@ class Algen
 
         //populasi di mutasi
         $populationMutated = $mutation->mainMutation($lengthOfChromosome, $populations);
-
 
         //hitung kembali dengan cocomo
         $populations = $population->populations($populationMutated, $SF, $KLOC, $EM, $months);
