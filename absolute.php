@@ -5,7 +5,7 @@ class Parameter
 {
     const file_name = 'cocomo_nasa93.txt';
     const mr = 0.01;
-    const populationSize = 30;
+    const populationSize = 5;
     const CR = 0.8;
 }
 
@@ -457,43 +457,72 @@ class Mutation
 
 class Algen
 {
-    function runAlgen($randomPopulation, $SF, $EM, $KLOC, $months)
+    function runAlgen()
     {
+        $project = (new CocomoNasa93Processor)->putScales();
+        $cocomo93 = new Cocomo93;
+        $algen = new Algen;
+        $population = new Population;
+        $randomPopulation = $population->createPopulation();
 
         $population = new Population;
         $selection = new Select;
         $oneCutPoint = new OneCutPoint;
         $temp = new Temp;
         $mutation = new Mutation;
+        for ($i = 0; $i < 93; $i++) {
+            $SF = $cocomo93->ScaleFactor($project[$i]);
+            $EM = $cocomo93->EffortMultipyer($project[$i]);
 
-        //hitung dengan populasi awal
-        $populations = $population->populations($randomPopulation, $SF, $KLOC, $EM, $months);
 
-        //roulete wheel menghasilkan populasi baru
-        $newPopulation =   $selection->rouletteWheel($populations);
+            $populations = $population->populations($randomPopulation, $SF, $project[$i]['kloc'], $EM, $project[$i]['month']);
+            $newPopulation =   $selection->rouletteWheel($populations);
+            $lengthOfChromosome = (new Individu)->countNumberOfGen();
+            $populationOffsprings = $oneCutPoint->crossover($newPopulation, $lengthOfChromosome);
+            $newPopulationOffspring =  $population->populations($populationOffsprings, $SF, $project[$i]['kloc'], $EM, $project[$i]['month']);
+            $mergePopulation = array_merge($newPopulation, $newPopulationOffspring);
+            $populations = $temp->sameKey($mergePopulation);
+            sort($populations);
+            $populations = array_slice($populations, 0, Parameter::populationSize);
+            $populationMutated = $mutation->mainMutation($lengthOfChromosome, $populations);
+            $populations = $population->populations($populationMutated, $SF, $project[$i]['kloc'], $EM, $project[$i]['month']);
+            $populations = $temp->sameKey($populations);
+            sort($populations);
+            foreach ($populations as $key => $val) {
+                print_r($key . " ");
+                print_r($populations[$key]);
+                echo '<br>';
+            }
 
-        //crossover menghasilkan populasi offsprings
-        $lengthOfChromosome = (new Individu)->countNumberOfGen();
-        $populationOffsprings = $oneCutPoint->crossover($newPopulation, $lengthOfChromosome);
+            // //hitung dengan populasi awal
+            // $populations = $population->populations($randomPopulation, $SF, $KLOC, $EM, $months);
 
-        //hitung cocomo dengan populasi offsprings
-        $newPopulationOffspring =  $population->populations($populationOffsprings, $SF, $KLOC, $EM, $months);
+            // //roulete wheel menghasilkan populasi baru
+            // $newPopulation =   $selection->rouletteWheel($populations);
 
-        //gabungkan population(roulette wheel) dengan population offsprings
-        $mergePopulation = array_merge($newPopulation, $newPopulationOffspring);
-        $populations = $temp->sameKey($mergePopulation);
-        sort($populations);
-        $populations = array_slice($populations, 0, Parameter::populationSize);
+            // //crossover menghasilkan populasi offsprings
+            // $lengthOfChromosome = (new Individu)->countNumberOfGen();
+            // $populationOffsprings = $oneCutPoint->crossover($newPopulation, $lengthOfChromosome);
 
-        //populasi di mutasi
-        $populationMutated = $mutation->mainMutation($lengthOfChromosome, $populations);
+            // //hitung cocomo dengan populasi offsprings
+            // $newPopulationOffspring =  $population->populations($populationOffsprings, $SF, $KLOC, $EM, $months);
 
-        //hitung kembali dengan cocomo
-        $populations = $population->populations($populationMutated, $SF, $KLOC, $EM, $months);
-        $populations = $temp->sameKey($populations);
-        sort($populations);
+            // //gabungkan population(roulette wheel) dengan population offsprings
+            // $mergePopulation = array_merge($newPopulation, $newPopulationOffspring);
+            // $populations = $temp->sameKey($mergePopulation);
+            // sort($populations);
+            // $populations = array_slice($populations, 0, Parameter::populationSize);
 
-        return $populations;
+            // //populasi di mutasi
+            // $populationMutated = $mutation->mainMutation($lengthOfChromosome, $populations);
+
+            // //hitung kembali dengan cocomo
+            // $populations = $population->populations($populationMutated, $SF, $KLOC, $EM, $months);
+            // $populations = $temp->sameKey($populations);
+            // sort($populations);
+        }
+
+        //return $populations;
     }
 }
 
@@ -512,52 +541,56 @@ class Main
 
         return $temp;
     }
-
-    function runMain()
-    {
-        $project = (new CocomoNasa93Processor)->putScales();
-        $cocomo93 = new Cocomo93;
-        $algen = new Algen;
-        $population = new Population;
-        $randomPopulation = $population->createPopulation();
-
-        for ($r = 0; $r < 30; $r++) { //iterasi rata-rata 
-
-            $j = 0;
-            while ($j < 93) { // project
-                $SF = $cocomo93->ScaleFactor($project[$j]);
-                $EM = $cocomo93->EffortMultipyer($project[$j]);
-
-                for ($i = 0; $i < 30; $i++) {  //iterasi algen
-                    $lastPopulation = $algen->runAlgen($randomPopulation, $SF, $EM, $project[$j]['kloc'], $project[$j]['months']);
-                    $selectedIndividu[$i] = $lastPopulation[0]; //ambil individu terkecil fitness dari setiap project
-                    $randomPopulation =  $lastPopulation;
-                }
-
-                sort($selectedIndividu);
-                $temp[$j] =  $selectedIndividu[0]['fitness'];
-
-                $j++;
-            }
-
-
-            $averageTemp[$r] = array_sum($temp) / 93;
-            print_r($averageTemp[$r]);
-            //  $averageGuessingIndexTemp[$r] =   array_sum($this->randomGuessing($temp)) / 93;
-
-            //print_r('averageTemp' . '-> ' . $averageTemp[$r] .   "&nbsp &nbsp"  . 'averageGuess' . '-> ' . $averageGuessingIndexTemp[$r]);
-            echo '<br>';
-        }
-
-        $averageTemp = array_sum($averageTemp);
-        //  $AveregeGuessingIndex = array_sum($averageGuessingIndexTemp);
-        echo '<p>';
-        print_r($averageTemp / 30);
-        // print_r(($averageTemp / 30) . ' -> ' . ($AveregeGuessingIndex / 30));
-    }
 }
 
+//     function runMain()
+//     {
+//         $project = (new CocomoNasa93Processor)->putScales();
+//         $cocomo93 = new Cocomo93;
+//         $algen = new Algen;
+//         $population = new Population;
+//         $randomPopulation = $population->createPopulation();
+
+//         //for ($r = 0; $r < 1; $r++) { //iterasi rata-rata 
+
+//         $j = 0;
+//         while ($j < 93) { // project
+//             $SF = $cocomo93->ScaleFactor($project[$j]);
+//             $EM = $cocomo93->EffortMultipyer($project[$j]);
+
+//             //  for ($i = 0; $i < 1; $i++) {  //iterasi algen
+//             $lastPopulation[] = $algen->runAlgen($randomPopulation, $SF, $EM, $project[$j]['kloc'], $project[$j]['months']);
+//             //  $selectedIndividu[$i] = $lastPopulation[0]; //ambil individu terkecil fitness dari setiap project
+//             // $randomPopulation =  $lastPopulation;
+//             print_r($lastPopulation);
+//             echo '<p>';
+//             //}
+
+//             // sort($selectedIndividu);
+//             //$temp[$j] =  $selectedIndividu[0]['fitness'];
+
+//             $j++;
+//         }
 
 
-$main = new Main;
-print_r($main->runMain());
+//         // $averageTemp[$r] = array_sum($temp) / 93;
+//         //  $averageGuessingIndexTemp[$r] =   array_sum($this->randomGuessing($temp)) / 93;
+
+//         //print_r('averageTemp' . '-> ' . $averageTemp[$r] .   "&nbsp &nbsp"  . 'averageGuess' . '-> ' . $averageGuessingIndexTemp[$r]);
+//         //echo '<br>';
+//         // }
+
+//         //$averageTemp = array_sum($averageTemp);
+//         //  $AveregeGuessingIndex = array_sum($averageGuessingIndexTemp);
+//         // echo '<p>';
+//         //  print_r($averageTemp / 30);
+//         // print_r(($averageTemp / 30) . ' -> ' . ($AveregeGuessingIndex / 30));
+//     }
+// }
+
+
+
+// $main = new Main;
+// print_r($main->runMain());
+$algen = new Algen;
+print_r($algen->runAlgen());
