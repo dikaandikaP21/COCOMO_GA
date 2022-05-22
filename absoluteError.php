@@ -175,6 +175,7 @@ class Population
                 'A' => $val['A'],
                 'B' => $val['B'],
                 'PM' => $PM,
+                'actualEffort' => $actualEffort,
                 'month' => $month,
                 'fitness' => $fitnessVal,
                 'totalFitness' => $totalFitness,
@@ -224,9 +225,11 @@ class Fitness
     function Komulatif($key, $probability, $komulatif)
     {
         if ($key == 0) {
-            $komulatif = abs($probability + 0);
+            // $komulatif = abs($probability + 0);
+            $komulatif = $probability + 0;
         } else {
-            $komulatif += abs($probability);
+            // $komulatif += abs($probability);
+            $komulatif += $probability;
         }
         return $komulatif;
     }
@@ -381,6 +384,7 @@ class Temp
                 'A' => $val['A'],
                 'B' => $val['B'],
                 'PM' => $val['PM'],
+                'actualEffort' => $val['actualEffort'],
                 'month' => $val['month'],
                 'totalFitness' => $val['totalFitness'],
                 'probability' => $val['probability'],
@@ -521,37 +525,37 @@ class Main
         $population = new Population;
         $randomPopulation = $population->createPopulation();
 
-        for ($r = 0; $r < 30; $r++) {    //iterasi rata-rata 
-            $j = 0;
-            while ($j < 93) {           // project
-                $SF = $cocomo93->ScaleFactor($project[$j]);
-                $EM = $cocomo93->EffortMultipyer($project[$j]);
 
-                for ($i = 0; $i < 30; $i++) {  //iterasi algen
-                    $lastPopulation = $algen->runAlgen($randomPopulation, $SF, $EM, $project[$j]['kloc'], $project[$j]['actualEffort'], $project[$j]['months']);
-                    $selectedIndividu[$i] = $lastPopulation[0];    //ambil individu terkecil fitness dari setiap project
-                    $randomPopulation =  $lastPopulation;
+        $j = 0;
+        while ($j < 93) { // project
+
+            print_r('project ' . $j . "<br>");
+
+            $SF = $cocomo93->ScaleFactor($project[$j]);
+            $EM = $cocomo93->EffortMultipyer($project[$j]);
+
+            for ($i = 0; $i < 1; $i++) {  //iterasi algen
+                $lastPopulation = $algen->runAlgen($randomPopulation, $SF, $EM, $project[$j]['kloc'], $project[$j]['actualEffort'], $project[$j]['months']);
+                $selectedIndividu[$i] = $lastPopulation[0]; //ambil individu terkecil fitness dari setiap project
+                $randomPopulation =  $lastPopulation;
+
+                // foreach ($lastPopulation as $key => $val) {    //hasil  iterasi algen
+                //     print_r($val);
+                //     echo '<br>';
+                // }
+
+                foreach ($selectedIndividu as $key => $val) {   // individu terbaik dalam populasi perproject
+                    print_r($val);
+                    echo '<br>';
                 }
-
-                sort($selectedIndividu);
-                $temp[$j] =  $selectedIndividu[0]['fitness']; //absolute error
-
-                $j++;
             }
 
-            $averageTemp[$r] = array_sum($temp) / 93;
-            // $averageGuessingIndexTemp[$r] =   array_sum($this->randomGuessing($temp)) / 93;
+            sort($selectedIndividu);
+            $temp[$j] =  $selectedIndividu[0]['fitness']; //absolute error
 
-            print_r($averageTemp[$r]);
-            // print_r('averageTemp' . '-> ' . $averageTemp[$r] .   "&nbsp &nbsp"  . 'averageGuess' . '-> ' . $averageGuessingIndexTemp[$r]);
-            echo '<br>';
+            $j++;
         }
-
-        $averageTemps = array_sum($averageTemp);
-        // $AveregeGuessingIndex = array_sum($averageGuessingIndexTemp);
-        echo '<p>';
-        print_r($averageTemps / 30);
-        // print_r(($averageTemp / 30) . ' -> ' . ($AveregeGuessingIndex / 30));
+        echo '<br>';
     }
 }
 
