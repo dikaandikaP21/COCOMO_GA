@@ -5,7 +5,7 @@ class Parameter
 {
     const file_name = 'cocomo_nasa93.txt';
     const mr = 0.01;
-    const populationSize = 95;
+    const populationSize = 85;
     const CR = 0.8;
 }
 
@@ -175,6 +175,7 @@ class Population
                 'A' => $val['A'],
                 'B' => $val['B'],
                 'PM' => $PM,
+                'actualEffort' => $actualEffort,
                 'month' => $month,
                 'fitness' => $fitnessVal,
                 'totalFitness' => $totalFitness,
@@ -381,6 +382,7 @@ class Temp
                 'A' => $val['A'],
                 'B' => $val['B'],
                 'PM' => $val['PM'],
+                'actualEffort' => $val['actualEffort'],
                 'month' => $val['month'],
                 'totalFitness' => $val['totalFitness'],
                 'probability' => $val['probability'],
@@ -512,6 +514,40 @@ class Main
 
         return $temp;
     }
+    function mbre($estimatedEffort, $actualEffort)
+    {
+        // echo ($estimatedEffort . "->" . $actualEffort);
+        if (floatval($estimatedEffort) > floatval($actualEffort)) {
+            $minEffort = $actualEffort;
+        } else {
+            $minEffort = $estimatedEffort;
+        }
+        // echo '<br>';
+        // echo ("MIN : " . $minEffort);
+        // echo '<br>';
+        return abs((floatval($estimatedEffort) - floatval($actualEffort)) / $minEffort);
+    }
+
+    function mibre($estimatedEffort, $actualEffort)
+    {
+        if (floatval($estimatedEffort) > floatval($actualEffort)) {
+            $maxEffort = $estimatedEffort;
+        } else {
+            $maxEffort = $actualEffort;
+        }
+        return abs((floatval($estimatedEffort) - floatval($actualEffort)) / $maxEffort);
+    }
+
+    function estimationNoOptimization($SF, $kloc, $effortMultipliers)
+    {
+        $cocomo93 = new Cocomo93;
+        $variabel = [
+            'A' => 2.94,
+            'B' => 0.91
+        ];
+        $estimasi =  $cocomo93->estimatingEffort($variabel, $SF, $kloc, $effortMultipliers);
+        return $estimasi;
+    }
 
     function runMain()
     {
@@ -521,37 +557,44 @@ class Main
         $population = new Population;
         $randomPopulation = $population->createPopulation();
 
-        for ($r = 0; $r < 30; $r++) {    //iterasi rata-rata 
+        for ($r = 0; $r < 30; $r++) { //iterasi rata-rata 
             $j = 0;
-            while ($j < 93) {           // project
+            while ($j < 93) { // project
+                // print_r('project' . $j . '<br>');
+
                 $SF = $cocomo93->ScaleFactor($project[$j]);
                 $EM = $cocomo93->EffortMultipyer($project[$j]);
 
-                for ($i = 0; $i < 30; $i++) {  //iterasi algen
+                for ($i = 0; $i < 80; $i++) {  //iterasi algen
                     $lastPopulation = $algen->runAlgen($randomPopulation, $SF, $EM, $project[$j]['kloc'], $project[$j]['actualEffort'], $project[$j]['months']);
-                    $selectedIndividu[$i] = $lastPopulation[0];    //ambil individu terkecil fitness dari setiap project
+                    $selectedIndividu[$i] = $lastPopulation[0]; //ambil individu terkecil fitness dari setiap project
                     $randomPopulation =  $lastPopulation;
                 }
 
                 sort($selectedIndividu);
-                $temp[$j] =  $selectedIndividu[0]['fitness']; //absolute error
+                $ae[$j] =  $selectedIndividu[0]['fitness'];   //AE
+                $estimationOptimizationEffort[$j] = $selectedIndividu[0]['PM'];  //Optimasi Estimasi Effort
+                $actualEffort[$j] = $selectedIndividu[0]['actualEffort'];        //Actual Effort dari DataSet
+
+
+                $estimasi[$j] = $this->estimationNoOptimization($SF, $project[$j]['kloc'], $EM);                //Estimasi Tanpa Optimasi
+                $mbre[$j] = $this->mbre($estimationOptimizationEffort[$j], $project[$j]['actualEffort']);      //mbre
+                $mibre[$j] =  $this->mibre($estimationOptimizationEffort[$j], $project[$j]['actualEffort']);  //mibre
+                // print_r($mbre[$j] . "    ->    " . $mibre[$j] . "   -> " . $estimasi[$j] . "    ->   " . $estimationOptimizationEffort[$j]);
+                // echo '<br>';
 
                 $j++;
             }
-
-            $averageTemp[$r] = array_sum($temp) / 93;
-            // $averageGuessingIndexTemp[$r] =   array_sum($this->randomGuessing($temp)) / 93;
-
-            print_r($averageTemp[$r]);
-            // print_r('averageTemp' . '-> ' . $averageTemp[$r] .   "&nbsp &nbsp"  . 'averageGuess' . '-> ' . $averageGuessingIndexTemp[$r]);
+            echo '<p>';
+            $averageActualEffort[$r] = array_sum($actualEffort) / 93;
+            $averageEstimationOptimizationEffort[$r] = array_sum($estimationOptimizationEffort) / 93;
+            $estimation[$r] = array_sum($estimasi) / 93;
+            $averageMbre[$r] = array_sum($mbre) / 93;
+            $averageMibre[$r] = array_sum($mibre) / 93;
+            print_r($averageMbre[$r] . "    ->    " . $averageMibre[$r] . "   ->   " . $estimation[$r] . "     ->     " . $averageEstimationOptimizationEffort[$r] . "     ->     " . $averageActualEffort[$r]);
             echo '<br>';
         }
-
-        $averageTemps = array_sum($averageTemp);
-        // $AveregeGuessingIndex = array_sum($averageGuessingIndexTemp);
-        echo '<p>';
-        print_r($averageTemps / 30);
-        // print_r(($averageTemp / 30) . ' -> ' . ($AveregeGuessingIndex / 30));
+        print_r((array_sum($averageMbre) / 30) . "    ->    " . (array_sum($averageMibre) / 30) . "   ->   " . (array_sum($estimation) / 30) . "     ->     " . (array_sum($averageEstimationOptimizationEffort) / 30) . "     ->     " . (array_sum($averageActualEffort) / 30));
     }
 }
 
