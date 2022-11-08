@@ -5,7 +5,7 @@ class Parameter
 {
     const file_name = 'cocomo_nasa93.txt';
     const mr = 0.01;
-    const populationSize = 30;
+    const populationSize = 45;
     const CR = 0.8;
 }
 
@@ -175,6 +175,7 @@ class Population
                 'A' => $val['A'],
                 'B' => $val['B'],
                 'PM' => $PM,
+                'actualEffort' => $actualEffort,
                 'month' => $month,
                 'fitness' => $fitnessVal,
                 'totalFitness' => $totalFitness,
@@ -224,9 +225,11 @@ class Fitness
     function Komulatif($key, $probability, $komulatif)
     {
         if ($key == 0) {
-            $komulatif = abs($probability + 0);
+            // $komulatif = abs($probability + 0);
+            $komulatif = $probability + 0;
         } else {
-            $komulatif += abs($probability);
+            // $komulatif += abs($probability);
+            $komulatif += $probability;
         }
         return $komulatif;
     }
@@ -381,6 +384,7 @@ class Temp
                 'A' => $val['A'],
                 'B' => $val['B'],
                 'PM' => $val['PM'],
+                'actualEffort' => $val['actualEffort'],
                 'month' => $val['month'],
                 'totalFitness' => $val['totalFitness'],
                 'probability' => $val['probability'],
@@ -484,7 +488,6 @@ class VariableRange
             if ($val['B'] > $range[1]['upperBound']) {
                 $population[$key]['B'] = $range[1]['upperBound'];
             }
-
             // print_r($population[$key]['B']);
             // echo '<br>';
         }
@@ -562,36 +565,30 @@ class Main
         $population = new Population;
         $randomPopulation = $population->createPopulation();
 
-        for ($r = 0; $r < 30; $r++) {    //iterasi rata-rata 
+        for ($r = 0; $r < 30; $r++) {
             $j = 0;
-            while ($j < 93) {           // project
+            while ($j < 93) { //iterasi project
+
                 $SF = $cocomo93->ScaleFactor($project[$j]);
                 $EM = $cocomo93->EffortMultipyer($project[$j]);
 
                 for ($i = 0; $i < 30; $i++) {  //iterasi algen
                     $lastPopulation = $algen->runAlgen($randomPopulation, $SF, $EM, $project[$j]['kloc'], $project[$j]['actualEffort'], $project[$j]['months']);
-                    $selectedIndividu[$i] = $lastPopulation[0];    //ambil individu terkecil fitness dari setiap project
+                    $selectedIndividu[$i] = $lastPopulation[0]; //ambil individu terkecil fitness dari setiap project
                     $randomPopulation =  $lastPopulation;
                 }
 
                 sort($selectedIndividu);
                 $AE[$j] =  $selectedIndividu[0]['fitness']; //absolute error
+
                 $j++;
             }
-
-
-            $tempAE[$r] = array_sum($AE) / 93;
-            $guessingAE[$r] =   array_sum($this->randomGuessing($AE)) / 93;
-
-            print_r('tempAE' . '-> ' . $tempAE[$r] .   "&nbsp &nbsp"  . 'GuessAE' . '-> ' . $guessingAE[$r]);
-            echo '<br>';
+            $temp[$r] = array_sum($AE) / 93;
+            print_r($temp[$r] . "<br>");
         }
-
-        $MAE = array_sum($tempAE) / 30;             //Mean Absolute Error
-        $guessMAE = array_sum($guessingAE) / 30;    //Mean Absolute Error Guessing Index
-        echo '<p>';
-        //print_r($tempAEs / 30);
-        print_r(($MAE / 30) . ' -> ' . ($guessMAE / 30));
+        echo '<br>';
+        $MAE = array_sum($temp) / 30; //Mean Absolute Error
+        print_r($MAE);
     }
 }
 

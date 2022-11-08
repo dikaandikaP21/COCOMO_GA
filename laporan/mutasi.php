@@ -342,6 +342,7 @@ class OneCutPoint
         foreach ($parents as $parent) {
 
             // echo '<br>';
+            // print_r('Index Parent : ');
             // print_r($parent);
             // echo '<br>';
             $cutPointIndex = $randomizer->getCutPointIndex();
@@ -357,7 +358,7 @@ class OneCutPoint
             // echo 'Offspring:<br>';
             $offspring1 = $this->offspring($parent1, $parent2, $cutPointIndex, 1, $lengthOfChromosome);
             // print_r($offspring1);
-            //echo '<br>';
+            // echo '<br>';
             // echo '<p></p>';
             // $ret[] = $offspring1;
 
@@ -366,11 +367,13 @@ class OneCutPoint
             $populationOffsprings[] = $population[$parent[0]];
             // print_r($populationOffsprings);
             // echo '<br>';
+
         }
 
         return $populationOffsprings;
     }
 }
+
 class Temp
 {
     function sameKey($Population)
@@ -390,6 +393,7 @@ class Temp
         return $populations;
     }
 }
+
 
 class Mutation
 {
@@ -426,7 +430,8 @@ class Mutation
 
         $mutationRate = $this->calcMutationRate($lengthOfChromosome);
         $numOfMutation = $this->calcNumOfMutation($mutationRate, $lengthOfChromosome, $populations);
-
+        // print_r($numOfMutation);
+        // exit;
         for ($i = 0; $i <= $numOfMutation - 1; $i++) {
             $indexOfIndividu = $randomizer->getRandomIndexOfIndividu(count($populations));
 
@@ -435,77 +440,47 @@ class Mutation
 
             $mutatedIndividu = $populations[$indexOfIndividu];
 
-            // $valueOfGenIndividu =  $mutatedIndividu[$indexOfGen]; //
+            $valueOfGenIndividu =  $mutatedIndividu[$indexOfGen]; //
             $valueOfGenMutated = $valueRandomGen->createIndividu()[$indexOfGen];
 
-            // print_r('key' . $indexOfIndividu); //
-            // print_r($mutatedIndividu); //
-            // echo '<br>'; //
-            // print_r($indexOfGen . '=' . $valueOfGenIndividu . '-> ' . $valueOfGenMutated); //
-            // echo '<br>'; //
+            print_r('key' . $indexOfIndividu); //
+            print_r($mutatedIndividu); //
+            echo '<br>'; //
+            print_r($indexOfGen . '=' . $valueOfGenIndividu . '-> ' . $valueOfGenMutated); //
+            echo '<br>'; //
             $mutatedIndividu[$indexOfGen] = $valueOfGenMutated;
-            // print_r('mutated'); //
-            // print_r($mutatedIndividu); //
-            // echo '<br>'; //
+            print_r('mutated'); //
+            print_r($mutatedIndividu); //
+            echo '<br>'; //
 
             $populations[$indexOfIndividu] = $mutatedIndividu;
-            // echo '<br>'; //
+            echo '<br>'; //
         }
         return $populations;
     }
 }
 
-class VariableRange
+function main()
 {
-    function Cocomo()
-    {
-        return [
-            ['lowerBound' => 0, 'upperBound' => 10],
-            ['lowerBound' => 0.3, 'upperBound' => 2]
-        ];
-    }
+    $project = (new CocomoNasa93Processor)->putScales();
+    $cocomo93 = new Cocomo93;
+    $population = new Population;
+    $randomPopulation = $population->createPopulation();
+    $selection = new Select;
+    $hasparent = new CrossoverGenerator;
+    $oneCutPoint = new OneCutPoint;
+    $temp = new Temp;
+    $mutation = new Mutation;
 
-    function exceedLimits($population)
-    {
-        $range = $this->Cocomo();
-        foreach ($population as $key => $val) {
+    $j = 0;
+    while ($j < 93) {
+        print_r("<br>" . 'project' . $j . "<br>");
+        $SF = $cocomo93->ScaleFactor($project[$j]);
+        $EM = $cocomo93->EffortMultipyer($project[$j]);
 
-            // cek untuk variabel A
-            if ($val['A'] < $range[0]['lowerBound']) {
-                $population[$key]['A'] = $range[0]['lowerBound'];
-            }
-            if ($val['A'] > $range[0]['upperBound']) {
-                $population[$key]['A'] = $range[0]['upperBound'];
-            }
-            //cek untuk variabel B
-            if ($val['B'] < $range[1]['lowerBound']) {
-                $population[$key]['B'] = $range[1]['lowerBound'];
-            }
-            if ($val['B'] > $range[1]['upperBound']) {
-                $population[$key]['B'] = $range[1]['upperBound'];
-            }
-
-            // print_r($population[$key]['B']);
-            // echo '<br>';
-        }
-        return $population;
-    }
-}
-
-class Algen
-{
-    function runAlgen($randomPopulation, $SF, $EM, $KLOC, $actualEffort, $months)
-    {
-
-        $population = new Population;
-        $selection = new Select;
-        $oneCutPoint = new OneCutPoint;
-        $temp = new Temp;
-        $mutation = new Mutation;
-        $variabelRange = new VariableRange;
 
         //hitung dengan populasi awal
-        $populations = $population->populations($randomPopulation, $SF, $KLOC, $EM, $actualEffort, $months);
+        $populations = $population->populations($randomPopulation, $SF, $project[$j]['kloc'], $EM,  $project[$j]['actualEffort'], $project[$j]['months']);
 
         //roulete wheel menghasilkan populasi baru
         $newPopulation =   $selection->rouletteWheel($populations);
@@ -515,7 +490,7 @@ class Algen
         $populationOffsprings = $oneCutPoint->crossover($newPopulation, $lengthOfChromosome);
 
         //hitung cocomo dengan populasi offsprings
-        $newPopulationOffspring =  $population->populations($populationOffsprings, $SF, $KLOC, $EM, $actualEffort, $months);
+        $newPopulationOffspring =  $population->populations($populationOffsprings, $SF, $project[$j]['kloc'], $EM,  $project[$j]['actualEffort'], $project[$j]['months']);
 
         //gabungkan population(roulette wheel) dengan population offsprings
         $mergePopulation = array_merge($newPopulation, $newPopulationOffspring);
@@ -526,76 +501,10 @@ class Algen
         //populasi di mutasi
         $populationMutated = $mutation->mainMutation($lengthOfChromosome, $populations);
 
-        //cek variabel range
-        $populationInRange = $variabelRange->exceedLimits($populationMutated);
 
-        //hitung kembali dengan cocomo
-        $populations = $population->populations($populationInRange, $SF, $KLOC, $EM, $actualEffort, $months);
-        $populations = $temp->sameKey($populations);
-        sort($populations);
-
-        return $populations;
+        $j++;
     }
 }
 
-class Main
-{
-
-    function randomGuessing($temp)
-    {
-        foreach ($temp as $key => $val) {
-            unset($temp[$key]);
-            foreach ($temp as $keyTemp => $valTemp) {
-                $tempGues[] = $valTemp;
-            }
-            $temp[$key] =  $tempGues[array_rand($tempGues)];
-        }
-
-        return $temp;
-    }
-
-    function runMain()
-    {
-        $project = (new CocomoNasa93Processor)->putScales();
-        $cocomo93 = new Cocomo93;
-        $algen = new Algen;
-        $population = new Population;
-        $randomPopulation = $population->createPopulation();
-
-        for ($r = 0; $r < 30; $r++) {    //iterasi rata-rata 
-            $j = 0;
-            while ($j < 93) {           // project
-                $SF = $cocomo93->ScaleFactor($project[$j]);
-                $EM = $cocomo93->EffortMultipyer($project[$j]);
-
-                for ($i = 0; $i < 30; $i++) {  //iterasi algen
-                    $lastPopulation = $algen->runAlgen($randomPopulation, $SF, $EM, $project[$j]['kloc'], $project[$j]['actualEffort'], $project[$j]['months']);
-                    $selectedIndividu[$i] = $lastPopulation[0];    //ambil individu terkecil fitness dari setiap project
-                    $randomPopulation =  $lastPopulation;
-                }
-
-                sort($selectedIndividu);
-                $AE[$j] =  $selectedIndividu[0]['fitness']; //absolute error
-                $j++;
-            }
-
-
-            $tempAE[$r] = array_sum($AE) / 93;
-            $guessingAE[$r] =   array_sum($this->randomGuessing($AE)) / 93;
-
-            print_r('tempAE' . '-> ' . $tempAE[$r] .   "&nbsp &nbsp"  . 'GuessAE' . '-> ' . $guessingAE[$r]);
-            echo '<br>';
-        }
-
-        $MAE = array_sum($tempAE) / 30;             //Mean Absolute Error
-        $guessMAE = array_sum($guessingAE) / 30;    //Mean Absolute Error Guessing Index
-        echo '<p>';
-        //print_r($tempAEs / 30);
-        print_r(($MAE / 30) . ' -> ' . ($guessMAE / 30));
-    }
-}
-
-
-
-$main = new Main;
-print_r($main->runMain());
+$t = main();
+print_r($t);

@@ -1,11 +1,12 @@
 <?php
 
+use Fitness as GlobalFitness;
 
 class Parameter
 {
     const file_name = 'cocomo_nasa93.txt';
     const mr = 0.01;
-    const populationSize = 85;
+    const populationSize = 95;
     const CR = 0.8;
 }
 
@@ -225,9 +226,11 @@ class Fitness
     function Komulatif($key, $probability, $komulatif)
     {
         if ($key == 0) {
-            $komulatif = abs($probability + 0);
+            // $komulatif = abs($probability + 0);
+            $komulatif = $probability + 0;
         } else {
-            $komulatif += abs($probability);
+            // $komulatif += abs($probability);
+            $komulatif += $probability;
         }
         return $komulatif;
     }
@@ -457,6 +460,42 @@ class Mutation
     }
 }
 
+class VariableRange
+{
+    function Cocomo()
+    {
+        return [
+            ['lowerBound' => 0, 'upperBound' => 10],
+            ['lowerBound' => 0.3, 'upperBound' => 2]
+        ];
+    }
+
+    function exceedLimits($population)
+    {
+        $range = $this->Cocomo();
+        foreach ($population as $key => $val) {
+
+            // cek untuk variabel A
+            if ($val['A'] < $range[0]['lowerBound']) {
+                $population[$key]['A'] = $range[0]['lowerBound'];
+            }
+            if ($val['A'] > $range[0]['upperBound']) {
+                $population[$key]['A'] = $range[0]['upperBound'];
+            }
+            //cek untuk variabel B
+            if ($val['B'] < $range[1]['lowerBound']) {
+                $population[$key]['B'] = $range[1]['lowerBound'];
+            }
+            if ($val['B'] > $range[1]['upperBound']) {
+                $population[$key]['B'] = $range[1]['upperBound'];
+            }
+            // print_r($population[$key]['B']);
+            // echo '<br>';
+        }
+        return $population;
+    }
+}
+
 class Algen
 {
     function runAlgen($randomPopulation, $SF, $EM, $KLOC, $actualEffort, $months)
@@ -467,6 +506,7 @@ class Algen
         $oneCutPoint = new OneCutPoint;
         $temp = new Temp;
         $mutation = new Mutation;
+        $variabelRange = new VariableRange;
 
         //hitung dengan populasi awal
         $populations = $population->populations($randomPopulation, $SF, $KLOC, $EM, $actualEffort, $months);
@@ -490,8 +530,11 @@ class Algen
         //populasi di mutasi
         $populationMutated = $mutation->mainMutation($lengthOfChromosome, $populations);
 
+        //cek variabel range
+        $populationInRange = $variabelRange->exceedLimits($populationMutated);
+
         //hitung kembali dengan cocomo
-        $populations = $population->populations($populationMutated, $SF, $KLOC, $EM, $actualEffort, $months);
+        $populations = $population->populations($populationInRange, $SF, $KLOC, $EM, $actualEffort, $months);
         $populations = $temp->sameKey($populations);
         sort($populations);
 
@@ -501,6 +544,16 @@ class Algen
 
 class Main
 {
+    function estimationNoOptimization($SF, $kloc, $effortMultipliers)
+    {
+        $cocomo93 = new Cocomo93;
+        $variabel = [
+            'A' => 2.94,
+            'B' => 0.91
+        ];
+        $estimasi =  $cocomo93->estimatingEffort($variabel, $SF, $kloc, $effortMultipliers);
+        return $estimasi;
+    }
 
     function randomGuessing($temp)
     {
@@ -514,40 +567,6 @@ class Main
 
         return $temp;
     }
-    function mbre($estimatedEffort, $actualEffort)
-    {
-        // echo ($estimatedEffort . "->" . $actualEffort);
-        if (floatval($estimatedEffort) > floatval($actualEffort)) {
-            $minEffort = $actualEffort;
-        } else {
-            $minEffort = $estimatedEffort;
-        }
-        // echo '<br>';
-        // echo ("MIN : " . $minEffort);
-        // echo '<br>';
-        return abs((floatval($estimatedEffort) - floatval($actualEffort)) / $minEffort);
-    }
-
-    function mibre($estimatedEffort, $actualEffort)
-    {
-        if (floatval($estimatedEffort) > floatval($actualEffort)) {
-            $maxEffort = $estimatedEffort;
-        } else {
-            $maxEffort = $actualEffort;
-        }
-        return abs((floatval($estimatedEffort) - floatval($actualEffort)) / $maxEffort);
-    }
-
-    function estimationNoOptimization($SF, $kloc, $effortMultipliers)
-    {
-        $cocomo93 = new Cocomo93;
-        $variabel = [
-            'A' => 2.94,
-            'B' => 0.91
-        ];
-        $estimasi =  $cocomo93->estimatingEffort($variabel, $SF, $kloc, $effortMultipliers);
-        return $estimasi;
-    }
 
     function runMain()
     {
@@ -556,65 +575,40 @@ class Main
         $algen = new Algen;
         $population = new Population;
         $randomPopulation = $population->createPopulation();
+        $fitness = new Fitness;
 
-        // for ($r = 0; $r < 30; $r++) { //iterasi rata-rata 
+        // for ($r = 0; $r < 30; $r++) {
         $j = 0;
-        while ($j < 93) {                                  // project
+        while ($j < 93) { //iterasi project
+
             $SF = $cocomo93->ScaleFactor($project[$j]);
             $EM = $cocomo93->EffortMultipyer($project[$j]);
 
-            for ($i = 0; $i < 80; $i++) {  //iterasi algen
+            for ($i = 0; $i < 95; $i++) {  //iterasi algen
                 $lastPopulation = $algen->runAlgen($randomPopulation, $SF, $EM, $project[$j]['kloc'], $project[$j]['actualEffort'], $project[$j]['months']);
                 $selectedIndividu[$i] = $lastPopulation[0]; //ambil individu terkecil fitness dari setiap project
                 $randomPopulation =  $lastPopulation;
             }
 
             sort($selectedIndividu);
-            $ae[$j] =  $selectedIndividu[0]['fitness'];   //AE
-            $estimationOptimizationEffort[$j] = $selectedIndividu[0]['PM'];  //Optimasi Estimasi Effort
-            $actualEffort[$j] = $selectedIndividu[0]['actualEffort'];        //Actual Effort dari DataSet
+            $aeOptimasi[$j] =  $selectedIndividu[0]['fitness']; //absolute error optimasi
 
+            $estimasi[$j] = $this->estimationNoOptimization($SF, $project[$j]['kloc'], $EM);
+            $aeNoOptimasi[$j] = $fitness->RelativeError($estimasi[$j], $project[$j]['actualEffort']); //absolute error tanpa optimasi
+            print_r($estimasi[$j] . "&nbsp; <> &nbsp;" . $aeNoOptimasi[$j]);
+            echo '<br>';
 
-            $estimasi[$j] = $this->estimationNoOptimization($SF, $project[$j]['kloc'], $EM);                //Estimasi Tanpa Optimasi
-            $mbre[$j] = $this->mbre($estimationOptimizationEffort[$j], $project[$j]['actualEffort']);      //mbre
-            $mibre[$j] =  $this->mibre($estimationOptimizationEffort[$j], $project[$j]['actualEffort']);  //mibre
-
-
-            print_r('Actual Effort : ' . $actualEffort[$j]);
-            echo '<br>';
-            print_r('Optimasi Estimasi : ' . $estimationOptimizationEffort[$j]);
-            echo '<br>';
-            print_r('Estimasi : ' . $estimasi[$j]);
-            echo '<br>';
-            print_r("MBRE : " . $mbre[$j]);
-            echo '<br>';
-            print_r("MIBRE : " . $mibre[$j]);
-            echo '<br>';
-            echo '<p>';
             $j++;
         }
         echo '<p>';
-        print_r("Average ActualEffort : " . (array_sum($actualEffort) / 93));
-        echo '<br>';
-        print_r("Average Optimasi Estimasi  : " . (array_sum($estimationOptimizationEffort) / 93));
-        echo '<br>';
-        print_r("Average Estimasi : " . (array_sum($estimasi) / 93));
-        echo '<br>';
-        print_r("Average MBRE : " . (array_sum($mbre) / 93));
-        echo '<br>';
-        print_r("Average MIBRE : " . (array_sum($mibre) / 93));
-        echo '<br>';
-
-        // echo '<p>';
-        // $averageActualEffort[$r] = array_sum($actualEffort) / 93;
-        // $averageEstimationOptimizationEffort[$r] = array_sum($estimationOptimizationEffort) / 93;
-        // $estimation[$r] = array_sum($estimasi) / 93;
-        // $averageMbre[$r] = array_sum($mbre) / 93;
-        // $averageMibre[$r] = array_sum($mibre) / 93;
-        //print_r($averageMbre[$r] . "    ->    " . $averageMibre[$r] . "   ->   " . $estimation[$r] . "     ->     " . $averageEstimationOptimizationEffort[$r] . "     ->     " . $averageActualEffort[$r]);
-        // echo '<br>';
+        $sumAEOptimasi = array_sum($aeOptimasi) / 93;
+        $sumAENoOptimasi = array_sum($aeNoOptimasi) / 93;
+        print_r($sumAEOptimasi . "&nbsp; <> &nbsp;" . $sumAENoOptimasi);
         // }
-        //  print_r((array_sum($averageMbre) / 30) . "    ->    " . (array_sum($averageMibre) / 30) . "   ->   " . (array_sum($estimation) / 30) . "     ->     " . (array_sum($averageEstimationOptimizationEffort) / 30) . "     ->     " . (array_sum($averageActualEffort) / 30));
+        // echo '<br>';
+        // $maeOptimasi = array_sum($sumAEOptimasi) / 30; //Mean Absolute Error Optimasi
+        // $maeNoOptimasi = array_sum($sumAENoOptimasi) / 30; //Mean Absolute Error Optimasi
+        // print_r($maeOptimasi . "&nbsp; <> &nbsp;" . $maeNoOptimasi);
     }
 }
 

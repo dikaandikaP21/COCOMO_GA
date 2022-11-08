@@ -484,7 +484,6 @@ class VariableRange
             if ($val['B'] > $range[1]['upperBound']) {
                 $population[$key]['B'] = $range[1]['upperBound'];
             }
-
             // print_r($population[$key]['B']);
             // echo '<br>';
         }
@@ -541,17 +540,17 @@ class Algen
 class Main
 {
 
-    function randomGuessing($temp)
+    function randomGuessing($AE)
     {
-        foreach ($temp as $key => $val) {
-            unset($temp[$key]);
-            foreach ($temp as $keyTemp => $valTemp) {
-                $tempGues[] = $valTemp;
+        foreach ($AE as $key => $val) {
+            unset($AE[$key]);
+            foreach ($AE as $keyAE => $valAE) {
+                $AEGues[] = $valAE;
             }
-            $temp[$key] =  $tempGues[array_rand($tempGues)];
+            $AE[$key] =  $AEGues[array_rand($AEGues)];
         }
 
-        return $temp;
+        return $AE;
     }
 
     function runMain()
@@ -579,19 +578,17 @@ class Main
                 $j++;
             }
 
-
             $tempAE[$r] = array_sum($AE) / 93;
-            $guessingAE[$r] =   array_sum($this->randomGuessing($AE)) / 93;
+            $guessing[$r] = array_sum($this->randomGuessing($AE)) / 93;
 
-            print_r('tempAE' . '-> ' . $tempAE[$r] .   "&nbsp &nbsp"  . 'GuessAE' . '-> ' . $guessingAE[$r]);
+            print_r($tempAE[$r] . " -> " . $guessing[$r]);
             echo '<br>';
         }
-
-        $MAE = array_sum($tempAE) / 30;             //Mean Absolute Error
-        $guessMAE = array_sum($guessingAE) / 30;    //Mean Absolute Error Guessing Index
         echo '<p>';
-        //print_r($tempAEs / 30);
-        print_r(($MAE / 30) . ' -> ' . ($guessMAE / 30));
+        $averageAE = array_sum($tempAE) / 30;
+        $averegeGuessingAE = array_sum($guessing) / 30;
+        print_r($averageAE . " -> " . $averegeGuessingAE);
+        echo '<br>';
     }
 }
 

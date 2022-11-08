@@ -1,12 +1,16 @@
 <?php
 
+use Parameter as GlobalParameter;
 
 class Parameter
 {
     const file_name = 'cocomo_nasa93.txt';
     const mr = 0.01;
-    const populationSize = 30;
+    const populationSize = 85;
     const CR = 0.8;
+    const searchOfA = ['lowerBound' => 0, 'upperBound' => 10];
+    const searchOfB = ['lowerBound' => 0.3, 'upperBound' => 2];
+    const maxGeneration = 90;
 }
 
 class CocomoNasa93Processor
@@ -175,6 +179,7 @@ class Population
                 'A' => $val['A'],
                 'B' => $val['B'],
                 'PM' => $PM,
+                'actualEffort' => $actualEffort,
                 'month' => $month,
                 'fitness' => $fitnessVal,
                 'totalFitness' => $totalFitness,
@@ -381,6 +386,7 @@ class Temp
                 'A' => $val['A'],
                 'B' => $val['B'],
                 'PM' => $val['PM'],
+                'actualEffort' => $val['actualEffort'],
                 'month' => $val['month'],
                 'totalFitness' => $val['totalFitness'],
                 'probability' => $val['probability'],
@@ -467,24 +473,23 @@ class VariableRange
 
     function exceedLimits($population)
     {
-        $range = $this->Cocomo();
+        // $range = $this->Cocomo();
         foreach ($population as $key => $val) {
 
             // cek untuk variabel A
-            if ($val['A'] < $range[0]['lowerBound']) {
-                $population[$key]['A'] = $range[0]['lowerBound'];
+            if ($val['A'] < Parameter::searchOfA['lowerBound']) {
+                $population[$key]['A'] = Parameter::searchOfA['lowerBound'];
             }
-            if ($val['A'] > $range[0]['upperBound']) {
-                $population[$key]['A'] = $range[0]['upperBound'];
+            if ($val['A'] > Parameter::searchOfA['upperBound']) {
+                $population[$key]['A'] = Parameter::searchOfA['upperBound'];
             }
             //cek untuk variabel B
-            if ($val['B'] < $range[1]['lowerBound']) {
-                $population[$key]['B'] = $range[1]['lowerBound'];
+            if ($val['B'] < Parameter::searchOfB['lowerBound']) {
+                $population[$key]['B'] = Parameter::searchOfB['lowerBound'];
             }
-            if ($val['B'] > $range[1]['upperBound']) {
-                $population[$key]['B'] = $range[1]['upperBound'];
+            if ($val['B'] > Parameter::searchOfB['upperBound']) {
+                $population[$key]['B'] = Parameter::searchOfB['upperBound'];
             }
-
             // print_r($population[$key]['B']);
             // echo '<br>';
         }
@@ -554,6 +559,41 @@ class Main
         return $temp;
     }
 
+    function mbre($estimatedEffort, $actualEffort)
+    {
+        // echo ($estimatedEffort . "->" . $actualEffort);
+        if (floatval($estimatedEffort) > floatval($actualEffort)) {
+            $minEffort = $actualEffort;
+        } else {
+            $minEffort = $estimatedEffort;
+        }
+        // echo '<br>';
+        // echo ("MIN : " . $minEffort);
+        // echo '<br>';
+        return abs((floatval($estimatedEffort) - floatval($actualEffort)) / $minEffort);
+    }
+
+    function mibre($estimatedEffort, $actualEffort)
+    {
+        if (floatval($estimatedEffort) > floatval($actualEffort)) {
+            $maxEffort = $estimatedEffort;
+        } else {
+            $maxEffort = $actualEffort;
+        }
+        return abs((floatval($estimatedEffort) - floatval($actualEffort)) / $maxEffort);
+    }
+
+    function estimationNoOptimization($SF, $kloc, $effortMultipliers)
+    {
+        $cocomo93 = new Cocomo93;
+        $variabel = [
+            'A' => 2.94,
+            'B' => 0.91
+        ];
+        $estimasi =  $cocomo93->estimatingEffort($variabel, $SF, $kloc, $effortMultipliers);
+        return $estimasi;
+    }
+
     function runMain()
     {
         $project = (new CocomoNasa93Processor)->putScales();
@@ -562,36 +602,44 @@ class Main
         $population = new Population;
         $randomPopulation = $population->createPopulation();
 
-        for ($r = 0; $r < 30; $r++) {    //iterasi rata-rata 
-            $j = 0;
-            while ($j < 93) {           // project
-                $SF = $cocomo93->ScaleFactor($project[$j]);
-                $EM = $cocomo93->EffortMultipyer($project[$j]);
+        //  for ($r = 0; $r < 30; $r++) {    //iterasi rata-rata 
+        $j = 0;
+        while ($j < 93) {           // project
+            $SF = $cocomo93->ScaleFactor($project[$j]);
+            $EM = $cocomo93->EffortMultipyer($project[$j]);
 
-                for ($i = 0; $i < 30; $i++) {  //iterasi algen
-                    $lastPopulation = $algen->runAlgen($randomPopulation, $SF, $EM, $project[$j]['kloc'], $project[$j]['actualEffort'], $project[$j]['months']);
-                    $selectedIndividu[$i] = $lastPopulation[0];    //ambil individu terkecil fitness dari setiap project
-                    $randomPopulation =  $lastPopulation;
-                }
-
-                sort($selectedIndividu);
-                $AE[$j] =  $selectedIndividu[0]['fitness']; //absolute error
-                $j++;
+            for ($i = 0; $i < parameter::maxGeneration; $i++) {  //iterasi algen
+                $lastPopulation = $algen->runAlgen($randomPopulation, $SF, $EM, $project[$j]['kloc'], $project[$j]['actualEffort'], $project[$j]['months']);
+                $selectedIndividu[$i] = $lastPopulation[0];    //ambil individu terkecil fitness dari setiap project
+                $randomPopulation =  $lastPopulation;
             }
 
+            sort($selectedIndividu);
+            $ae[$j] =  $selectedIndividu[0]['fitness'];   //AE optimasi
+            $estimationOptimizationEffort[$j] = $selectedIndividu[0]['PM'];  //Optimasi Estimasi Effort
+            $actualEffort[$j] = $selectedIndividu[0]['actualEffort'];        //Actual Effort dari DataSet
 
-            $tempAE[$r] = array_sum($AE) / 93;
-            $guessingAE[$r] =   array_sum($this->randomGuessing($AE)) / 93;
 
-            print_r('tempAE' . '-> ' . $tempAE[$r] .   "&nbsp &nbsp"  . 'GuessAE' . '-> ' . $guessingAE[$r]);
+            $estimasi[$j] = $this->estimationNoOptimization($SF, $project[$j]['kloc'], $EM);                //Estimasi Tanpa Optimasi
+            $mbre[$j] = $this->mbre($estimationOptimizationEffort[$j], $project[$j]['actualEffort']);      //mbre
+            $mibre[$j] =  $this->mibre($estimationOptimizationEffort[$j], $project[$j]['actualEffort']);  //mibre
+
+            print_r('A = ' . $selectedIndividu[0]['A'] . '&nbsp;' . ' B = ' . $selectedIndividu[0]['B']);
             echo '<br>';
-        }
+            print_r('Actual Effort : ' . $actualEffort[$j]);
+            echo '<br>';
+            print_r('Optimasi Estimasi : ' . $estimationOptimizationEffort[$j]);
+            echo '<br>';
+            print_r('Estimasi : ' . $estimasi[$j]);
+            echo '<br>';
+            print_r("MBRE : " . $mbre[$j]);
+            echo '<br>';
+            print_r("MIBRE : " . $mibre[$j]);
+            echo '<br>';
+            echo '<p>';
 
-        $MAE = array_sum($tempAE) / 30;             //Mean Absolute Error
-        $guessMAE = array_sum($guessingAE) / 30;    //Mean Absolute Error Guessing Index
-        echo '<p>';
-        //print_r($tempAEs / 30);
-        print_r(($MAE / 30) . ' -> ' . ($guessMAE / 30));
+            $j++;
+        }
     }
 }
 
